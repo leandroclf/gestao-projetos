@@ -54,6 +54,11 @@ def _relation(properties: dict[str, Any], name: str) -> str:
     return values[0].get("id", "") if values else ""
 
 
+def _relation_ids(properties: dict[str, Any], name: str) -> tuple[str, ...]:
+    values = properties.get(name, {}).get("relation", [])
+    return tuple(value.get("id", "") for value in values if value.get("id"))
+
+
 def _normalize(source: str, page: dict[str, Any], status_name: str, owner_name: str, due_name: str, project_name: str = "") -> Record:
     props = page.get("properties", {})
     return Record(
@@ -70,6 +75,7 @@ def _normalize(source: str, page: dict[str, Any], status_name: str, owner_name: 
         project_id=_relation(props, project_name) if project_name else "",
         area=_option(props, "Área"),
         area_id=_relation(props, "Área"),
+        area_ids=_relation_ids(props, "Área"),
         request_team=_option(props, "Time Responsável"),
         kind=_option(props, "Tipo"),
     )

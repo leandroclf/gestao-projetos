@@ -17,6 +17,7 @@ class Record:
     project_id: str = ""
     area: str = ""
     area_id: str = ""
+    area_ids: tuple[str, ...] = ()
     request_team: str = ""
     kind: str = ""
 

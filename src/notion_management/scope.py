@@ -6,9 +6,16 @@ def _compact(value: str) -> str:
     return value.replace("-", "").lower()
 
 
+def _area_candidates(record: Record) -> tuple[str, ...]:
+    if record.area_ids:
+        return record.area_ids
+    return (record.area_id,) if record.area_id else ()
+
+
 def in_scope(record: Record, settings: Settings) -> bool:
     """Aplica o mesmo recorte gerencial definido nos painéis do Notion."""
-    area_match = _compact(record.area_id) == _compact(settings.integrations_area_id)
+    target_area = _compact(settings.integrations_area_id)
+    area_match = any(_compact(area_id) == target_area for area_id in _area_candidates(record))
     owner_match = _compact(record.owner_id) in {_compact(settings.manager_id), *(_compact(item) for item in settings.team_member_ids)}
     if record.source in {"tasks", "projects"}:
         return area_match or owner_match

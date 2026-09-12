@@ -40,6 +40,17 @@ class ScopeTest(unittest.TestCase):
         record = Record(source="tasks", page_id="1", title="Outra área", area_id="area-financeiro", owner_id="other")
         self.assertFalse(in_scope(record, self.settings))
 
+    def test_task_matches_area_beyond_first_relation_item(self) -> None:
+        record = Record(
+            source="tasks",
+            page_id="1",
+            title="Tarefa multi-área",
+            area_id="area-financeiro",
+            area_ids=("area-financeiro", "area-integracoes"),
+            owner_id="other",
+        )
+        self.assertTrue(in_scope(record, self.settings))
+
     def test_coltec_uses_integration_area_or_leandro(self) -> None:
         self.assertTrue(in_scope(Record(source="coltec", page_id="1", title="Ação", area="Integração"), self.settings))
         self.assertTrue(in_scope(Record(source="coltec", page_id="2", title="Ação", owner_id="manager-1"), self.settings))
@@ -57,12 +68,13 @@ class ScopeTest(unittest.TestCase):
                 "Nome": {"type": "title", "title": [{"plain_text": "Tarefa"}]},
                 "Status": {"type": "status", "status": {"name": "Em andamento"}},
                 "Responsável": {"type": "people", "people": [{"id": "member-1", "name": "Pessoa"}]},
-                "Área": {"type": "relation", "relation": [{"id": "area-integracoes"}]},
+                "Área": {"type": "relation", "relation": [{"id": "area-financeiro"}, {"id": "area-integracoes"}]},
                 "Última atualização": {"type": "last_edited_time", "last_edited_time": "2026-09-10T12:00:00.000Z"},
             },
         }
         record = _normalize("tasks", page, "Status", "Responsável", "Prazo", "Projeto")
-        self.assertEqual(record.area_id, "area-integracoes")
+        self.assertEqual(record.area_id, "area-financeiro")
+        self.assertEqual(record.area_ids, ("area-financeiro", "area-integracoes"))
         self.assertEqual(record.owner_id, "member-1")
         self.assertEqual(record.updated_at.isoformat(), "2026-09-10")
 
