@@ -57,6 +57,14 @@ Os 62 achados estão distribuídos em 45 tarefas sem prazo, 1 tarefa sem aprovad
 
 O baseline completo está em `reports/snapshots/2026-09-12.json`. Esses números são uma fotografia e devem ser comparados com os painéis do Notion antes de virar meta ou alerta.
 
+## Validação de recorte — 12/09/2026
+
+Primeira execução do próximo incremento 1 (comparar auditoria e snapshots com os painéis dinâmicos do Notion).
+
+- Contagens confirmadas: a auditoria de hoje repetiu 731 tarefas, 39 projetos e 23 solicitações, iguais ao baseline. Os achados de qualidade caíram de 62 para 16 (`due_date_missing` foi de 45 para 5); antes de tratar isso como melhoria real, revisar por amostragem se houve preenchimento genuíno de prazo ou mudança de status para fora do recorte controlado.
+- Corrigido: `_relation()` em `src/notion_management/service.py` usava apenas o primeiro item do relacionamento `Área` de cada tarefa/projeto, descartando registros cuja Área "Integrações" não fosse a primeira do relacionamento e cujo responsável também não batesse. Adicionado `_relation_ids()` e o campo `Record.area_ids` (todas as áreas relacionadas), com `scope.in_scope` agora verificando qualquer uma delas. Após a correção, a auditoria passou a incluir 754 tarefas (antes 731) e 44 projetos (antes 39), confirmando a hipótese; achados de qualidade subiram de 16 para 27 porque mais registros passaram a entrar no recorte. Testes de regressão em `tests/test_scope.py` cobrem o caso de área alvo fora da primeira posição.
+- Achado confirmado no Notion: a view "Tarefas · Visão geral" do Painel Operacional (`https://app.notion.com/p/df2c96f891e343bb820f96c09acfd932`) filtra `Responsável` por apenas 2 dos 6 IDs de `NOTION_TEAM_MEMBER_IDS` (mais o gestor). Os outros 4 membros da equipe não aparecem nesse board específico, então a comparação visual entre CLI e Notion pode divergir por configuração da própria view, não por erro da automação.
+
 ## Próxima validação gerencial
 
 Antes de automatizar mensagens periódicas, revisar os 62 achados por amostragem e separar:
