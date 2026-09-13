@@ -59,8 +59,8 @@ O relatório calcula volume por fonte, status, responsável, itens sem prazo, ap
 - responsável obrigatório nesses quatro status;
 - prazo obrigatório nesses quatro status;
 - pelo menos uma `Aprovadora` quando o status for `Para ser aprovada`;
-- atualização do responsável em no máximo dois dias úteis para tarefas não concluídas;
-- atualização do responsável no último dia útil para tarefas `Bloqueada`;
+- atualização do responsável preferencialmente todos os dias úteis e, obrigatoriamente, no máximo a cada dois dias úteis até a conclusão;
+- atualização registrada nos comentários da tarefa, com evolução, impedimento, evidência ou próximo passo;
 - tarefa sem projeto é permitida e não gera achado;
 - tarefa `Feito` não é cobrada por atualização, pois já foi concluída.
 

@@ -2,7 +2,7 @@
 
 ## Escopo
 
-Este arquivo é a memória operacional local do projeto `/home/leandro/IdeaProjects/hive/notion`. Ele orienta agentes que continuarem o trabalho em novas conversas. O projeto é uma automação independente da equipe de Integrações, não um componente dos demais repositórios existentes em `/home/leandro/IdeaProjects/hive`.
+Este arquivo é a memória operacional local do codebase `gestao-projetos`. Ele orienta agentes que continuarem o trabalho em novas conversas. Use a raiz do repositório (`.`) e caminhos relativos; não dependa do diretório local usado em uma máquina específica. O projeto é uma automação independente da equipe de Integrações.
 
 ## Objetivo do produto
 
@@ -78,12 +78,11 @@ Aplicar somente aos status `Em Progresso`, `Bloqueada`, `Para ser aprovada` e `F
 - `Responsável` é obrigatório;
 - `Prazo` é obrigatório;
 - `Para ser aprovada` exige ao menos uma pessoa em `Aprovadora`;
-- tarefas não concluídas devem ter atualização do responsável a cada, no máximo, dois dias úteis;
-- tarefas `Bloqueada` devem ter atualização do responsável no último dia útil;
+- toda tarefa deve receber atualização do responsável preferencialmente todos os dias úteis e, obrigatoriamente, no máximo a cada dois dias úteis até sua conclusão;
 - tarefas sem `Projeto` são permitidas e não devem gerar achado;
 - tarefas `Feito` não precisam continuar recebendo atualização, mas continuam exigindo dono e prazo.
 
-O auditor usa `last_edited_time` como aproximação da última atualização. Não afirmar que a atualização foi feita pelo responsável ou que ocorreu em comentário sem consultar o histórico de discussões do Notion.
+As atualizações devem ser registradas nos comentários da tarefa, contendo evolução, impedimento, evidência ou próximo passo. O auditor usa `last_edited_time` como aproximação da última atualização. Não afirmar que a atualização foi feita pelo responsável ou que ocorreu em comentário sem consultar o histórico de discussões do Notion.
 
 ## Configuração
 

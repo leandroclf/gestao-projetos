@@ -47,18 +47,9 @@ def audit(records: list[Record], today: date | None = None) -> AuditReport:
         if record.status == "Feito":
             continue
         if not record.updated_at:
-            rule = "blocked_update_missing" if record.status == "Bloqueada" else "stale"
-            message = (
-                "Tarefa bloqueada sem atualização do responsável no último dia útil."
-                if record.status == "Bloqueada"
-                else "Tarefa sem data de atualização do responsável."
-            )
-            findings.append(Finding(record.source, record.page_id, record.title, rule, message))
+            findings.append(Finding(record.source, record.page_id, record.title, "stale", "Tarefa sem data de atualização do responsável."))
             continue
         business_days = _business_days_since(record.updated_at, today)
-        if record.status == "Bloqueada":
-            if business_days >= 1:
-                findings.append(Finding(record.source, record.page_id, record.title, "blocked_update_missing", "Tarefa bloqueada sem atualização do responsável no último dia útil."))
-        elif business_days > 2:
+        if business_days > 2:
             findings.append(Finding(record.source, record.page_id, record.title, "stale", "Tarefa sem atualização do responsável há mais de dois dias úteis."))
     return AuditReport(records=records, findings=findings)

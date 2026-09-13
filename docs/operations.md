@@ -31,7 +31,7 @@ O projeto está pronto para ser chamado por cron, CI, Cloud Run Job ou outro exe
 Exemplo de cron local, para ser adaptado e aprovado no ambiente operacional:
 
 ```cron
-0 8 * * 1-5 cd /caminho/absoluto/notion && PYTHONPATH=src /usr/bin/python3 -m notion_management snapshot >> /var/log/hive-notion.log 2>&1
+0 8 * * 1-5 cd <raiz-do-repositorio> && PYTHONPATH=src /usr/bin/python3 -m notion_management snapshot >> /var/log/gestao-projetos.log 2>&1
 ```
 
 Não configurar o `notify --send` automaticamente até definir:
@@ -53,7 +53,7 @@ Com as quatro fontes acessíveis, a auditoria filtrada encontrou:
 - 62 achados de qualidade;
 - 2.088 registros excluídos por escopo.
 
-Os 62 achados estão distribuídos em 45 tarefas sem prazo, 1 tarefa sem aprovador, 6 tarefas bloqueadas sem atualização no último dia útil, 5 tarefas sem atualização há mais de dois dias úteis e 5 tarefas com prazo vencido. Não houve achados de responsável ausente na execução.
+Os 62 achados estão distribuídos em 45 tarefas sem prazo, 1 tarefa sem aprovador, 11 tarefas sem atualização dentro da cadência definida e 5 tarefas com prazo vencido. Não houve achados de responsável ausente na execução. Esse baseline é histórico e preserva a regra vigente na data da execução; novas execuções devem aplicar as regras atuais.
 
 O baseline completo está em `reports/snapshots/2026-09-12.json`. Esses números são uma fotografia e devem ser comparados com os painéis do Notion antes de virar meta ou alerta.
 

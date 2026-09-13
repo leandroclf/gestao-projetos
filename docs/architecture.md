@@ -33,8 +33,7 @@ As regras de qualidade de tarefa são deliberadamente restritas aos status `Em P
 | Dono | `Responsável` obrigatório nos quatro status controlados. |
 | Prazo | `Prazo` obrigatório nos quatro status controlados. |
 | Aprovação | `Aprovadora` deve conter ao menos uma pessoa em `Para ser aprovada`. |
-| Atualização | Até dois dias úteis entre atualizações para tarefas não concluídas. |
-| Bloqueio | Tarefa `Bloqueada` deve ter atualização no último dia útil. |
+| Atualização | Preferencialmente todos os dias úteis e, obrigatoriamente, no máximo a cada dois dias úteis até a conclusão; o registro deve estar nos comentários da tarefa. |
 | Projeto | Relação `Projeto` é recomendada, mas não obrigatória. |
 | Conclusão | Tarefa `Feito` não é cobrada por cadência de atualização. |
 

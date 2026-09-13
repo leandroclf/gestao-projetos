@@ -6,12 +6,12 @@ from notion_management.quality import audit
 
 
 class QualityTest(unittest.TestCase):
-    def test_flags_blocked_task_with_overdue_due_date_and_missing_update(self) -> None:
+    def test_flags_blocked_task_with_overdue_due_date_and_stale_update(self) -> None:
         report = audit(
             [Record(source="tasks", page_id="1", title="Integração", status="Bloqueada", due_date=date.today() - timedelta(days=1), updated_at=date.today() - timedelta(days=6))]
         )
         rules = {finding.rule for finding in report.findings}
-        self.assertTrue({"owner_missing", "overdue", "blocked_update_missing"} <= rules)
+        self.assertTrue({"owner_missing", "overdue", "stale"} <= rules)
 
 
     def test_task_without_project_is_allowed(self) -> None:
