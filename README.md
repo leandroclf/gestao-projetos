@@ -30,7 +30,7 @@ PYTHONPATH=src python3 -m notion_management notify --send
 
 O token não deve ser commitado. A CLI lê o `.env` local sem executá-lo como shell, o que também suporta URLs de webhook com caracteres especiais. A integração do Notion precisa ter acesso às quatro fontes configuradas no `.env.example`.
 
-`notify` gera somente alertas de pendências acionáveis no escopo da equipe. Os alertas são separados por tipo, agrupados por responsável e limitados a oito exemplos por responsável. O arquivo `GCHAT_ALERT_STATE_FILE` guarda uma impressão digital por tipo para evitar reenvio quando nada mudou; use `--force` somente para validar ou reenviar conscientemente.
+`notify` gera somente alertas de pendências acionáveis no escopo da equipe. Os alertas são separados por tipo, agrupados por responsável e limitados a três exemplos por responsável. O arquivo `GCHAT_ALERT_STATE_FILE` guarda uma impressão digital por tipo para evitar reenvio quando nada mudou. Use `--initial` e `--validation` para as mensagens de implantação inicial; use `--force` somente para validar ou reenviar alertas conscientemente.
 
 Todas as auditorias aplicam escopo antes de calcular indicadores: tarefas e projetos entram pela área de Integrações ou por responsável da equipe/Leandro; COLTEC entra por `Área = Integração` ou Leandro; solicitações entram por `Time Responsável = HIVEPlace` ou Leandro. O relatório também informa quantos registros foram excluídos por fonte. O diretório de snapshots é configurado por `NOTION_SNAPSHOT_DIR` e, por padrão, fica em `reports/snapshots/`.
 

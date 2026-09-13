@@ -18,7 +18,7 @@ PYTHONPATH=src python3 -m notion_management notify --send --thread-key gestao-in
 
 O webhook publica apenas no espaço em que foi criado. A mensagem deve ser tratada como sinal de acompanhamento; a decisão, a evolução e a evidência continuam nos comentários do registro oficial no Notion.
 
-O `notify` publica uma mensagem por tipo de pendência, somente quando houver mudança desde o último envio. As mensagens são agrupadas por responsável e usam threads estáveis: `gestao-integracoes-overdue`, `gestao-integracoes-stale`, `gestao-integracoes-due_date_missing`, `gestao-integracoes-approver_missing`, `gestao-integracoes-owner_missing` e `gestao-integracoes-urgent_without_project`. O caminho do estado é `GCHAT_ALERT_STATE_FILE`, com padrão `reports/gchat-alert-state.json`.
+O `notify` publica uma mensagem por tipo de pendência, somente quando houver mudança desde o último envio. As mensagens são agrupadas por responsável, limitadas a três exemplos por responsável e usam a thread fixa `gestao-integracoes` por padrão. O caminho do estado é `GCHAT_ALERT_STATE_FILE`, com padrão `reports/gchat-alert-state.json`. As mensagens iniciais podem ser publicadas com `notify --send --initial` e `notify --send --validation`.
 
 ## Agendamento futuro
 

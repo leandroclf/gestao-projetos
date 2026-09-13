@@ -21,7 +21,7 @@ Comentários dentro da tarefa, projeto ou solicitação são a linha do tempo of
 
 - A primeira versão é somente leitura no Notion.
 - O auditor calcula achados de qualidade e não altera status, propriedades, relações, comentários ou conteúdo.
-- O envio ao GChat é explícito e exige `notify --send`.
+- O envio ao GChat é explícito e exige `notify --send`; a thread padrão é `gestao-integracoes`.
 - O webhook do Google Chat foi validado com uma mensagem real.
 - Os testes unitários cobrem qualidade, escopo, normalização e snapshot; devem ser executados antes de qualquer entrega.
 - A integração do Notion usada localmente é identificada como `Automação`.
@@ -104,7 +104,7 @@ PYTHONPATH=src python3 -m notion_management notify --send
 PYTHONPATH=src python3 -m notion_management snapshot
 ```
 
-`audit` exibe o relatório sem envio. `notify` exibe o resumo; somente `notify --send` publica no Google Chat.
+`audit` exibe o relatório sem envio. `notify` exibe somente pendências acionáveis; `notify --send` publica no Google Chat. Use `notify --send --initial` e `notify --send --validation` apenas para a implantação inicial.
 `snapshot` executa a mesma auditoria filtrada e salva um JSON datado em `NOTION_SNAPSHOT_DIR` (padrão: `reports/snapshots/`). O `notify` aceita `--thread-key` para agrupar mensagens em uma thread estável.
 
 ## Validação obrigatória

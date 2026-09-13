@@ -16,7 +16,16 @@ ALERT_LABELS = {
     "urgent_without_project": "Solicitação P0 sem projeto",
 }
 ALERT_ORDER = tuple(ALERT_LABELS)
-MAX_EXAMPLES_PER_OWNER = 8
+MAX_EXAMPLES_PER_OWNER = 3
+DEFAULT_THREAD_KEY = "gestao-integracoes"
+
+INTRO_MESSAGE = """*Evolução do acompanhamento — Equipe de Integrações*
+
+Estamos iniciando uma evolução no acompanhamento de projetos e tarefas para facilitar a gestão, dar mais visibilidade às pendências e melhorar a qualidade das entregas.
+
+Os alertas serão objetivos e enviados somente quando houver necessidade de atuação. O Notion continua sendo a fonte oficial, e toda atualização deve ser registrada nos comentários da tarefa com a evolução, impedimento, evidência ou próximo passo.
+
+A proposta é reduzir cobranças manuais, antecipar riscos e apoiar a equipe e a liderança no acompanhamento dos compromissos."""
 
 
 @dataclass(frozen=True)
@@ -72,6 +81,13 @@ def pending_alerts(report: AuditReport) -> list[Alert]:
     return build_alerts(report)
 
 
+def validation_message(report: AuditReport) -> str:
+    alerts = pending_alerts(report)
+    if not alerts:
+        return "*Validação inicial — Equipe de Integrações*\n\nNenhuma pendência acionável foi encontrada no escopo atual."
+    return "*Validação inicial — Pendências atuais da Equipe de Integrações*\n\n" + "\n\n".join(alert.message for alert in alerts)
+
+
 def _read_state(path: Path) -> dict[str, dict[str, str]]:
     if not path.is_file():
         return {"alerts": {}}
@@ -82,13 +98,13 @@ def _read_state(path: Path) -> dict[str, dict[str, str]]:
     return value if isinstance(value, dict) and isinstance(value.get("alerts"), dict) else {"alerts": {}}
 
 
-def send_pending_alerts(report: AuditReport, state_path: Path, send: Callable[[str, str], None], force: bool = False) -> list[Alert]:
+def send_pending_alerts(report: AuditReport, state_path: Path, send: Callable[[str, str], None], force: bool = False, thread_key: str = DEFAULT_THREAD_KEY) -> list[Alert]:
     state = _read_state(state_path)
     sent: list[Alert] = []
     for alert in pending_alerts(report):
         if not force and state["alerts"].get(alert.rule) == alert.fingerprint:
             continue
-        send(alert.message, f"gestao-integracoes-{alert.rule}")
+        send(alert.message, thread_key)
         state["alerts"][alert.rule] = alert.fingerprint
         sent.append(alert)
     state_path.parent.mkdir(parents=True, exist_ok=True)

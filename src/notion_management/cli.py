@@ -3,7 +3,7 @@ import json
 from dataclasses import asdict
 from pathlib import Path
 
-from .alerting import pending_alerts, send_pending_alerts
+from .alerting import DEFAULT_THREAD_KEY, INTRO_MESSAGE, pending_alerts, send_pending_alerts, validation_message
 from .config import Settings
 from .gchat import send_webhook
 from .snapshot import save_snapshot
@@ -19,6 +19,8 @@ def main() -> int:
     notify_parser.add_argument("--send", action="store_true", help="Confirma o envio ao webhook configurado.")
     notify_parser.add_argument("--thread-key", default="", help="Agrupa a mensagem em uma thread do GChat.")
     notify_parser.add_argument("--force", action="store_true", help="Reenvia alertas mesmo sem mudança desde o último envio.")
+    notify_parser.add_argument("--initial", action="store_true", help="Publica a mensagem inicial de apresentação.")
+    notify_parser.add_argument("--validation", action="store_true", help="Publica a mensagem de validação com as pendências atuais.")
     sub.add_parser("snapshot", help="Executa a auditoria e salva um baseline JSON local.")
     args = parser.parse_args()
     settings = Settings.from_environment()
@@ -38,10 +40,20 @@ def main() -> int:
                 print()
         if args.command == "notify" and args.send:
             def publish(message: str, thread_key: str) -> None:
-                send_webhook(settings.gchat_webhook_url, message, thread_key=args.thread_key or thread_key)
+                send_webhook(settings.gchat_webhook_url, message, thread_key=args.thread_key or thread_key or DEFAULT_THREAD_KEY)
 
-            sent = send_pending_alerts(report, Path(settings.gchat_alert_state_file), publish, force=args.force)
-            print(f"{len(sent)} alerta(s) enviado(s) ao Google Chat.")
+            published = 0
+            thread_key = args.thread_key or DEFAULT_THREAD_KEY
+            if args.initial:
+                publish(INTRO_MESSAGE, thread_key)
+                published += 1
+            if args.validation:
+                publish(validation_message(report), thread_key)
+                published += 1
+            if not args.initial and not args.validation:
+                sent = send_pending_alerts(report, Path(settings.gchat_alert_state_file), publish, force=args.force, thread_key=thread_key)
+                published = len(sent)
+            print(f"{published} mensagem(ns)/alerta(s) enviado(s) ao Google Chat.")
     return 0
 
 

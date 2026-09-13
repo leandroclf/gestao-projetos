@@ -4,7 +4,7 @@ import unittest
 from datetime import date, timedelta
 from pathlib import Path
 
-from notion_management.alerting import build_alerts, pending_alerts, send_pending_alerts
+from notion_management.alerting import build_alerts, pending_alerts, send_pending_alerts, validation_message
 from notion_management.models import AuditReport, Finding, Record
 
 
@@ -41,3 +41,22 @@ class AlertingTest(unittest.TestCase):
 
     def test_empty_or_non_actionable_report_produces_no_alert(self) -> None:
         self.assertEqual([], pending_alerts(AuditReport()))
+
+    def test_limits_each_responsible_group_to_three_examples(self) -> None:
+        report = self._report()
+        report.findings.extend(
+            Finding("tasks", str(index), f"Pendência {index}", "overdue", "Prazo vencido.")
+            for index in range(3, 7)
+        )
+        report.records.extend(
+            Record(source="tasks", page_id=str(index), title=f"Pendência {index}", status="Em Progresso", owner="Rafael")
+            for index in range(3, 7)
+        )
+        message = next(alert.message for alert in build_alerts(report) if alert.rule == "overdue")
+        self.assertIn("e mais 2 pendência(s) deste responsável", message)
+
+    def test_validation_message_contains_only_current_alerts(self) -> None:
+        message = validation_message(self._report())
+        self.assertIn("Pendências atuais", message)
+        self.assertIn("Tarefa vencida", message)
+        self.assertIn("Rafael", message)
