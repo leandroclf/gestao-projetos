@@ -1,7 +1,9 @@
 import argparse
 import json
 from dataclasses import asdict
+from pathlib import Path
 
+from .alerting import pending_alerts, send_pending_alerts
 from .config import Settings
 from .gchat import send_webhook
 from .snapshot import save_snapshot
@@ -16,6 +18,7 @@ def main() -> int:
     notify_parser = sub.add_parser("notify", help="Gera um resumo e opcionalmente envia ao GChat.")
     notify_parser.add_argument("--send", action="store_true", help="Confirma o envio ao webhook configurado.")
     notify_parser.add_argument("--thread-key", default="", help="Agrupa a mensagem em uma thread do GChat.")
+    notify_parser.add_argument("--force", action="store_true", help="Reenvia alertas mesmo sem mudança desde o último envio.")
     sub.add_parser("snapshot", help="Executa a auditoria e salva um baseline JSON local.")
     args = parser.parse_args()
     settings = Settings.from_environment()
@@ -26,11 +29,19 @@ def main() -> int:
     elif args.command == "audit" and args.json:
         print(json.dumps(asdict(report), ensure_ascii=False, default=str, indent=2))
     else:
-        message = render_markdown(report)
-        print(message)
+        alerts = pending_alerts(report)
+        if not alerts:
+            print("Nenhuma pendência acionável no escopo da equipe de Integrações.")
+        else:
+            for alert in alerts:
+                print(alert.message)
+                print()
         if args.command == "notify" and args.send:
-            send_webhook(settings.gchat_webhook_url, message, thread_key=args.thread_key)
-            print("Resumo enviado ao Google Chat.")
+            def publish(message: str, thread_key: str) -> None:
+                send_webhook(settings.gchat_webhook_url, message, thread_key=args.thread_key or thread_key)
+
+            sent = send_pending_alerts(report, Path(settings.gchat_alert_state_file), publish, force=args.force)
+            print(f"{len(sent)} alerta(s) enviado(s) ao Google Chat.")
     return 0
 
 

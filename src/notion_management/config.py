@@ -32,6 +32,7 @@ class Settings:
     manager_id: str
     team_member_ids: tuple[str, ...]
     snapshot_dir: str
+    gchat_alert_state_file: str = "reports/gchat-alert-state.json"
 
     @classmethod
     def from_environment(cls) -> "Settings":
@@ -51,6 +52,7 @@ class Settings:
                 "2f6d872b-594c-8161-ba5b-000220935468,372d872b-594c-8137-bb5d-0002057b7ea8,2fbd872b-594c-8134-a985-0002a8e31c7b,372d872b-594c-813f-a059-00028cf75c9c,2f6d872b-594c-8104-bfe1-0002056ed704,328d872b-594c-81a6-8b1b-00028f0bcee9",
             ).split(","))),
             snapshot_dir=os.environ.get("NOTION_SNAPSHOT_DIR", "reports/snapshots"),
+            gchat_alert_state_file=os.environ.get("GCHAT_ALERT_STATE_FILE", "reports/gchat-alert-state.json"),
         )
 
     def require_notion_token(self) -> None:

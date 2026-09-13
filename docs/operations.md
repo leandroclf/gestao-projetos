@@ -18,12 +18,14 @@ PYTHONPATH=src python3 -m notion_management notify --send --thread-key gestao-in
 
 O webhook publica apenas no espaço em que foi criado. A mensagem deve ser tratada como sinal de acompanhamento; a decisão, a evolução e a evidência continuam nos comentários do registro oficial no Notion.
 
+O `notify` publica uma mensagem por tipo de pendência, somente quando houver mudança desde o último envio. As mensagens são agrupadas por responsável e usam threads estáveis: `gestao-integracoes-overdue`, `gestao-integracoes-stale`, `gestao-integracoes-due_date_missing`, `gestao-integracoes-approver_missing`, `gestao-integracoes-owner_missing` e `gestao-integracoes-urgent_without_project`. O caminho do estado é `GCHAT_ALERT_STATE_FILE`, com padrão `reports/gchat-alert-state.json`.
+
 ## Agendamento futuro
 
 O projeto está pronto para ser chamado por cron, CI, Cloud Run Job ou outro executor autorizado, mas nenhum agendamento é ativado por este repositório. A rotina recomendada é:
 
 1. executar `snapshot` diariamente ou em cada ciclo de gestão;
-2. executar `notify --send` somente após definir a política de repetição e severidade;
+2. executar `notify --send` nos ciclos definidos; a deduplicação impede repetição quando o conjunto de pendências não mudou;
 3. armazenar `NOTION_TOKEN` e `GCHAT_WEBHOOK_URL` no cofre de segredos do ambiente;
 4. manter logs sem tokens, webhooks ou conteúdo sensível;
 5. alertar quando a execução falhar, sem transformar falha técnica em mensagem falsa de saúde.
@@ -34,13 +36,7 @@ Exemplo de cron local, para ser adaptado e aprovado no ambiente operacional:
 0 8 * * 1-5 cd <raiz-do-repositorio> && PYTHONPATH=src /usr/bin/python3 -m notion_management snapshot >> /var/log/gestao-projetos.log 2>&1
 ```
 
-Não configurar o `notify --send` automaticamente até definir:
-
-- quais regras geram alerta;
-- janela e frequência por severidade;
-- chave de thread por tipo de mensagem;
-- responsável por tratar cada alerta;
-- comportamento de retry e deduplicação.
+As frequências recomendadas são: `stale` diariamente em dias úteis; `overdue` diariamente em dias úteis; `due_date_missing` duas vezes por semana; `approver_missing` diariamente em dias úteis; `owner_missing` diariamente em dias úteis; e `urgent_without_project` imediatamente no próximo ciclo. O agendamento deve ser configurado fora deste repositório, com o ambiente autorizado e o estado persistido.
 
 ## Baseline validado — 12/09/2026
 
