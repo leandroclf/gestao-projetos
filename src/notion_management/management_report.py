@@ -11,6 +11,15 @@ MANAGEMENT_THREAD_KEY = "gestao-gerencial"
 # O card repete o fallback com HTML e botões; o limite conservador evita que o
 # tamanho após o processamento de markup ultrapasse o limite do webhook.
 MAX_GCHAT_MESSAGE_CHARS = 8000
+PAUTA_FINDING_RULES = {
+    "overdue",
+    "stale",
+    "approval_update_missing",
+    "blocked_follow_up",
+    "approver_missing",
+    "due_date_missing",
+    "owner_missing",
+}
 
 
 def _active(record: Record) -> bool:
@@ -120,6 +129,8 @@ def render_management_report(report: AuditReport, manager_id: str) -> str:
 
     findings_by_page: dict[str, list[str]] = {}
     for finding in report.findings:
+        if finding.rule not in PAUTA_FINDING_RULES:
+            continue
         if finding.page_id not in findings_by_page:
             findings_by_page[finding.page_id] = []
         findings_by_page[finding.page_id].append(finding.message)
