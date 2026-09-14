@@ -10,6 +10,12 @@ from .scope import in_scope
 from .template import missing_sections
 
 
+REPORT_TASK_STATUSES = {"Em Progresso", "Bloqueada", "Para ser aprovada"}
+REPORT_PROJECT_STATUSES = {"Doing", "Blocked", "TBA", "Em Progresso", "Bloqueada", "Para ser aprovada"}
+REPORT_COLTEC_COMPLETED_STATUSES = {"Feito", "Done", "Concluído", "Concluída"}
+REPORT_REQUEST_STATUSES = {"Inbox", "Formatada", "Atendimento BBTS", "Atendimento Core", "On hold", "Comunicar cliente", "Comunicado e aguardando feedback", "Solicitação bloqueada"}
+
+
 def _text(properties: dict[str, Any], name: str) -> str:
     prop = properties.get(name, {})
     values = prop.get("title", []) or prop.get("rich_text", [])
@@ -110,7 +116,10 @@ def _normalize(source: str, page: dict[str, Any], status_name: str, owner_name: 
         owner_id=_person_id(props, owner_name),
         approver_count=_people_count(props, "Aprovadora"),
         due_date=_date(props, due_name),
-        updated_at=_system_date(props, "Última atualização") or _system_date(props, " Ultima Edição"),
+        updated_at=_system_date(props, "Última atualização") or _system_date(props, " Ultima Edição") or (
+            datetime.fromisoformat(page["last_edited_time"].replace("Z", "+00:00")).date()
+            if page.get("last_edited_time") else None
+        ),
         priority=_option(props, "Prioridade"),
         project_id=_relation(props, project_name) if project_name else "",
         area=_option(props, "Área"),
@@ -136,10 +145,18 @@ def run_audit(settings: Settings, today: date | None = None) -> AuditReport:
     ]:
         for row in client.query_data_source(data_source_id):
             record = _normalize(source, row, status, owner, due, project)
-            if source == "tasks" and record.status in {"Bloqueada", "Para ser aprovada"}:
-                comments = _comments(client.list_comments(record.page_id))
-                record = replace(record, comments=comments, comment_recipient=_last_team_mention(comments, settings.team_member_ids + (settings.manager_id,)))
+            report_statuses = REPORT_TASK_STATUSES if source == "tasks" else REPORT_PROJECT_STATUSES
             if in_scope(record, settings):
+                should_read_comments = (
+                    source in {"tasks", "projects"} and record.status in report_statuses
+                ) or (
+                    source == "coltec" and record.status not in REPORT_COLTEC_COMPLETED_STATUSES
+                ) or (
+                    source == "requests" and record.status in REPORT_REQUEST_STATUSES
+                )
+                if should_read_comments:
+                    comments = _comments(client.list_comments(record.page_id))
+                    record = replace(record, comments=comments, comment_recipient=_last_team_mention(comments, settings.team_member_ids + (settings.manager_id,)))
                 if source in {"tasks", "projects"} and record.status not in {"Feito", "Done", "Concluído", "Concluída"}:
                     blocks = client.list_block_children(record.page_id) if row.get("has_children") else []
                     record = replace(record, template_missing=missing_sections(source, row.get("properties", {}), blocks))

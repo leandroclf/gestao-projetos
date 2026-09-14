@@ -59,6 +59,7 @@ def _format_group(owner: str, findings: list[Finding]) -> str:
     for finding in findings[:MAX_EXAMPLES_PER_OWNER]:
         link = f" — {finding.url}" if finding.url else ""
         lines.append(f"- {finding.title}{link}")
+        lines.append(f"  Responsável: {owner}")
         lines.append(f"  Ação: {finding.message}")
     if len(findings) > MAX_EXAMPLES_PER_OWNER:
         lines.append(f"- ... e mais {len(findings) - MAX_EXAMPLES_PER_OWNER} pendência(s) deste responsável")

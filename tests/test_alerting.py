@@ -27,6 +27,10 @@ class AlertingTest(unittest.TestCase):
         self.assertIn("Tarefa vencida", next(alert.message for alert in alerts if alert.rule == "overdue"))
         self.assertIn("https://www.notion.so/1", next(alert.message for alert in alerts if alert.rule == "overdue"))
 
+    def test_includes_responsible_next_to_each_task(self) -> None:
+        message = next(alert.message for alert in build_alerts(self._report()) if alert.rule == "overdue")
+        self.assertIn("- Tarefa vencida — https://www.notion.so/1\n  Responsável: Rafael", message)
+
     def test_only_changed_alerts_are_sent_and_force_resends(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             state_path = Path(directory) / "alerts.json"

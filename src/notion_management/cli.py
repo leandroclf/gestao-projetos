@@ -7,6 +7,7 @@ from pathlib import Path
 from .alerting import DEFAULT_THREAD_KEY, INTRO_MESSAGE, pending_alerts, scheduled_rules, send_pending_alerts, validation_message
 from .config import Settings
 from .gchat import send_webhook
+from .management_report import MANAGEMENT_THREAD_KEY, render_management_report, split_management_report
 from .snapshot import save_snapshot
 from .service import render_markdown, run_audit
 
@@ -24,11 +25,22 @@ def main() -> int:
     notify_parser.add_argument("--validation", action="store_true", help="Publica a mensagem de validação com as pendências atuais.")
     notify_parser.add_argument("--rules", default="", help="Regras separadas por vírgula para este ciclo de alerta.")
     notify_parser.add_argument("--schedule", action="store_true", help="Aplica a seleção diária ou de terça/quinta do agendamento do host.")
+    report_parser = sub.add_parser("report", help="Gera o relatório gerencial de tarefas, projetos e menções.")
+    report_parser.add_argument("--send", action="store_true", help="Envia o relatório ao webhook gerencial configurado.")
+    report_parser.add_argument("--thread-key", default=MANAGEMENT_THREAD_KEY, help="Agrupa o relatório em uma thread do GChat.")
     sub.add_parser("snapshot", help="Executa a auditoria e salva um baseline JSON local.")
     args = parser.parse_args()
     settings = Settings.from_environment()
     report = run_audit(settings)
-    if args.command == "snapshot":
+    if args.command == "report":
+        message = render_management_report(report, settings.manager_id)
+        print(message)
+        if args.send:
+            messages = split_management_report(message)
+            for part in messages:
+                send_webhook(settings.gchat_gerencial_webhook_url, part, thread_key=args.thread_key, env_name="GCHAT_GERENCIAL_WEBHOOK_URL")
+            print(f"{len(messages)} mensagem(ns) do relatório gerencial enviada(s) ao Google Chat.")
+    elif args.command == "snapshot":
         path = save_snapshot(report, settings.snapshot_dir)
         print(f"Snapshot salvo em {path}.")
     elif args.command == "audit" and args.json:

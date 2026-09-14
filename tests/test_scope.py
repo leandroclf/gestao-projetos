@@ -18,6 +18,7 @@ class ScopeTest(unittest.TestCase):
             notion_token="token",
             notion_version="2025-09-03",
             gchat_webhook_url="",
+            gchat_gerencial_webhook_url="",
             tasks_id="tasks",
             projects_id="projects",
             coltec_id="coltec",

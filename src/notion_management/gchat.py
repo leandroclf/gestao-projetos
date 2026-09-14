@@ -3,9 +3,9 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 
 
-def send_webhook(webhook_url: str, message: str, thread_key: str = "", timeout: int = 20) -> None:
+def send_webhook(webhook_url: str, message: str, thread_key: str = "", timeout: int = 20, env_name: str = "GCHAT_WEBHOOK_URL") -> None:
     if not webhook_url:
-        raise RuntimeError("GCHAT_WEBHOOK_URL não configurado.")
+        raise RuntimeError(f"{env_name} não configurado.")
     if thread_key:
         parts = urlsplit(webhook_url)
         query = dict(parse_qsl(parts.query, keep_blank_values=True))
