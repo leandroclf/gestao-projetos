@@ -71,6 +71,24 @@ class ManagementReportTest(unittest.TestCase):
 
         self.assertGreater(len(chunks), 1)
 
+    def test_derived_sections_do_not_repeat_full_record_details(self) -> None:
+        manager_id = "manager-1"
+        task = Record(
+            source="tasks",
+            page_id="task-1",
+            title="Tarefa mencionada",
+            status="Em Progresso",
+            owner="Rafael",
+            updated_at=date(2026, 9, 14),
+            page_url="https://www.notion.so/task-1",
+            comments=(Comment(date(2026, 9, 14), "@Leandro decidir", (manager_id,), author_name="Rafael"),),
+        )
+
+        message = render_management_report(AuditReport(records=[task], findings=[]), manager_id)
+
+        self.assertEqual(1, message.count("Comentário mais recente (2026-09-14"))
+        self.assertEqual(1, message.count("Responsável: Rafael"))
+
 
 if __name__ == "__main__":
     unittest.main()
