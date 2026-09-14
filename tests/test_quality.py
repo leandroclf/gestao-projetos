@@ -19,6 +19,11 @@ class QualityTest(unittest.TestCase):
         report = audit([Record(source="tasks", page_id="1", title="Independente", status="Em Progresso", owner="Pessoa", due_date=date.today(), updated_at=date.today())])
         self.assertNotIn("project_missing", {finding.rule for finding in report.findings})
 
+    def test_active_project_with_incomplete_template_is_flagged(self) -> None:
+        report = audit([Record(source="projects", page_id="p1", title="Projeto", status="Doing", owner="Leandro", template_missing=("Descrição",), page_url="https://www.notion.so/p1")])
+        finding = next(finding for finding in report.findings if finding.rule == "template_incomplete")
+        self.assertEqual("Projeto sem documentação do template: Descrição.", finding.message)
+
 
     def test_owner_and_due_date_apply_only_to_active_controlled_statuses(self) -> None:
         backlog = audit([Record(source="tasks", page_id="1", title="Backlog", status="Backlog")])

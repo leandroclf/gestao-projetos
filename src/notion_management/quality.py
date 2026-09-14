@@ -44,7 +44,11 @@ def audit(records: list[Record], today: date | None = None) -> AuditReport:
         if record.source == "requests" and record.status in ACTIVE_REQUEST_STATUSES and record.priority == "P0" and not record.project_id:
             findings.append(Finding(record.source, record.page_id, record.title, "urgent_without_project", "Solicitação P0 sem projeto técnico relacionado."))
         if record.source != "tasks" or record.status not in TASK_REVIEW_STATUSES:
+            if record.source == "projects" and record.status in ACTIVE_PROJECT_STATUSES and record.template_missing:
+                findings.append(Finding(record.source, record.page_id, record.title, "template_incomplete", f"Projeto sem documentação do template: {', '.join(record.template_missing)}.", recipient=record.owner, url=record.page_url))
             continue
+        if record.template_missing:
+            findings.append(Finding(record.source, record.page_id, record.title, "template_incomplete", f"Tarefa sem documentação do template: {', '.join(record.template_missing)}.", recipient=record.owner, url=record.page_url))
         if not record.owner:
             findings.append(Finding(record.source, record.page_id, record.title, "owner_missing", "Tarefa em status controlado sem responsável."))
         if not record.due_date:

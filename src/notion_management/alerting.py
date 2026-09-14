@@ -12,6 +12,7 @@ ALERT_LABELS = {
     "stale": "Atualização pendente",
     "approval_update_missing": "Aguardando aprovação",
     "blocked_follow_up": "Ação para desbloqueio",
+    "template_incomplete": "Template incompleto",
     "due_date_missing": "Tarefa sem prazo",
     "approver_missing": "Aguardando aprovador",
     "owner_missing": "Tarefa sem responsável",

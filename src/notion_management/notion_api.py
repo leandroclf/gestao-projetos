@@ -45,6 +45,19 @@ class NotionClient:
                 return comments
             cursor = response["next_cursor"]
 
+    def list_block_children(self, block_id: str) -> list[dict]:
+        blocks: list[dict] = []
+        cursor: str | None = None
+        while True:
+            query = "?page_size=100"
+            if cursor:
+                query += f"&start_cursor={cursor}"
+            response = self._request("GET", f"/blocks/{block_id}/children{query}", None)
+            blocks.extend(response.get("results", []))
+            if not response.get("has_more") or not response.get("next_cursor"):
+                return blocks
+            cursor = response["next_cursor"]
+
     def _request(self, method: str, path: str, payload: dict | None) -> dict:
         request = Request(
             f"{self.base_url}{path}",

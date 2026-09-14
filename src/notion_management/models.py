@@ -32,6 +32,7 @@ class Record:
     approver_names: tuple[str, ...] = ()
     page_url: str = ""
     comment_recipient: str = ""
+    template_missing: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

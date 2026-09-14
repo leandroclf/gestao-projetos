@@ -7,6 +7,7 @@ from .models import AuditReport, Comment, Record
 from .notion_api import NotionClient
 from .quality import audit
 from .scope import in_scope
+from .template import missing_sections
 
 
 def _text(properties: dict[str, Any], name: str) -> str:
@@ -139,6 +140,9 @@ def run_audit(settings: Settings, today: date | None = None) -> AuditReport:
                 comments = _comments(client.list_comments(record.page_id))
                 record = replace(record, comments=comments, comment_recipient=_last_team_mention(comments, settings.team_member_ids + (settings.manager_id,)))
             if in_scope(record, settings):
+                if source in {"tasks", "projects"} and record.status not in {"Feito", "Done", "Concluído", "Concluída"}:
+                    blocks = client.list_block_children(record.page_id) if row.get("has_children") else []
+                    record = replace(record, template_missing=missing_sections(source, row.get("properties", {}), blocks))
                 records.append(record)
             else:
                 excluded_by_source[source] = excluded_by_source.get(source, 0) + 1
