@@ -1,5 +1,0 @@
-# Alertas diários: segunda, quarta e sexta-feira às 08:00.
-0 8 * * 1,3,5 cd /home/leandro/IdeaProjects/lfsolucoes/gestao-projetos && /usr/bin/flock -n /tmp/gestao-projetos-alertas.lock /usr/bin/env PYTHONPATH=src /usr/bin/python3 -m notion_management notify --send --rules overdue,stale,approval_update_missing,blocked_follow_up >> reports/cron-alertas.log 2>&1
-
-# Alertas diários + tarefas sem prazo: terça e quinta-feira às 08:00.
-0 8 * * 2,4 cd /home/leandro/IdeaProjects/lfsolucoes/gestao-projetos && /usr/bin/flock -n /tmp/gestao-projetos-alertas.lock /usr/bin/env PYTHONPATH=src /usr/bin/python3 -m notion_management notify --send --rules overdue,stale,approval_update_missing,blocked_follow_up,due_date_missing >> reports/cron-alertas.log 2>&1
