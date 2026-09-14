@@ -80,7 +80,7 @@ Aplicar somente aos status `Em Progresso`, `Bloqueada`, `Para ser aprovada` e `F
 - `Para ser aprovada` exige ao menos uma pessoa em `Aprovadora`;
 - toda tarefa deve receber atualização do responsável preferencialmente todos os dias úteis e, obrigatoriamente, no máximo a cada dois dias úteis até sua conclusão;
 - tarefas sem `Projeto` são permitidas e não devem gerar achado;
-- tarefas `Feito` não precisam continuar recebendo atualização, mas continuam exigindo dono e prazo.
+- tarefas `Feito` saem do mapa de alertas e não exigem dono, prazo, aprovador ou atualização, pois já foram concluídas.
 
 As atualizações devem ser registradas nos comentários da tarefa, contendo evolução, impedimento, evidência ou próximo passo. O auditor usa `last_edited_time` como aproximação da última atualização. Não afirmar que a atualização foi feita pelo responsável ou que ocorreu em comentário sem consultar o histórico de discussões do Notion.
 

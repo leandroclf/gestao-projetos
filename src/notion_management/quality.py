@@ -3,7 +3,7 @@ from datetime import date, timedelta
 from .models import AuditReport, Finding, Record
 
 
-TASK_REVIEW_STATUSES = {"Em Progresso", "Bloqueada", "Para ser aprovada", "Feito"}
+TASK_REVIEW_STATUSES = {"Em Progresso", "Bloqueada", "Para ser aprovada"}
 ACTIVE_PROJECT_STATUSES = {"Inbox", "Backlog", "Ready", "Doing", "Blocked", "TBA"}
 ACTIVE_REQUEST_STATUSES = {"Inbox", "Formatada", "Atendimento BBTS", "Atendimento Core", "On hold", "Comunicar cliente", "Comunicado e aguardando feedback", "Solicitação bloqueada"}
 
@@ -53,8 +53,6 @@ def audit(records: list[Record], today: date | None = None) -> AuditReport:
             findings.append(Finding(record.source, record.page_id, record.title, "approver_missing", "Tarefa aguardando aprovação sem pelo menos um aprovador."))
         if record.due_date and record.due_date < today and record.status not in {"Feito", "Bloqueada"}:
             findings.append(Finding(record.source, record.page_id, record.title, "overdue", "Prazo vencido para tarefa ainda não concluída."))
-        if record.status == "Feito":
-            continue
         recipient = record.owner
         rule = "stale"
         message = "Tarefa sem data de atualização nos comentários."

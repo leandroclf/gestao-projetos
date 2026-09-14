@@ -20,13 +20,12 @@ class QualityTest(unittest.TestCase):
         self.assertNotIn("project_missing", {finding.rule for finding in report.findings})
 
 
-    def test_owner_and_due_date_apply_only_to_controlled_statuses(self) -> None:
+    def test_owner_and_due_date_apply_only_to_active_controlled_statuses(self) -> None:
         backlog = audit([Record(source="tasks", page_id="1", title="Backlog", status="Backlog")])
         feito = audit([Record(source="tasks", page_id="2", title="Feito", status="Feito")])
         self.assertNotIn("owner_missing", {finding.rule for finding in backlog.findings})
         self.assertNotIn("due_date_missing", {finding.rule for finding in backlog.findings})
-        self.assertIn("owner_missing", {finding.rule for finding in feito.findings})
-        self.assertIn("due_date_missing", {finding.rule for finding in feito.findings})
+        self.assertEqual([], feito.findings)
 
 
     def test_controlled_task_requires_approver_only_when_waiting_approval(self) -> None:

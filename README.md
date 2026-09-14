@@ -56,7 +56,7 @@ docs/
 
 ## Indicadores calculados
 
-O relatório calcula volume por fonte, status, responsável, itens sem prazo, aprovação pendente, bloqueios, P0, compromissos vencidos e cadência de atualização. As regras de tarefa são aplicadas somente nos status `Em Progresso`, `Bloqueada`, `Para ser aprovada` e `Feito`:
+O relatório calcula volume por fonte, status, responsável, itens sem prazo, aprovação pendente, bloqueios, P0, compromissos vencidos e cadência de atualização. As regras de tarefa são aplicadas somente nos status ativos `Em Progresso`, `Bloqueada` e `Para ser aprovada`:
 
 - responsável obrigatório nesses quatro status;
 - prazo obrigatório nesses quatro status;
@@ -64,7 +64,7 @@ O relatório calcula volume por fonte, status, responsável, itens sem prazo, ap
 - atualização do responsável preferencialmente todos os dias úteis e, obrigatoriamente, no máximo a cada dois dias úteis até a conclusão;
 - atualização registrada nos comentários da tarefa, com evolução, impedimento, evidência ou próximo passo;
 - tarefa sem projeto é permitida e não gera achado;
-- tarefa `Feito` não é cobrada por atualização, pois já foi concluída.
+- tarefa `Feito` sai do mapa de alertas e não gera nenhum achado, pois já foi concluída.
 
 Os valores devem ser comparados com as visões dinâmicas do [Painel de Gestão — Equipe de Integrações](https://app.notion.com/p/3d99821c9b7681538173ddf48d2fef79).
 

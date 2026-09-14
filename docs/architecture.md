@@ -26,7 +26,7 @@ O recorte é configurável para a área e os membros, com Leandro mantido como r
 
 ### Matriz de revisão de tarefas
 
-As regras de qualidade de tarefa são deliberadamente restritas aos status `Em Progresso`, `Bloqueada`, `Para ser aprovada` e `Feito`:
+As regras de qualidade de tarefa são deliberadamente restritas aos status ativos `Em Progresso`, `Bloqueada` e `Para ser aprovada`; tarefas `Feito` são excluídas antes da geração de qualquer achado:
 
 | Regra | Critério |
 | --- | --- |
@@ -35,7 +35,7 @@ As regras de qualidade de tarefa são deliberadamente restritas aos status `Em P
 | Aprovação | `Aprovadora` deve conter ao menos uma pessoa em `Para ser aprovada`. |
 | Atualização | Preferencialmente todos os dias úteis e, obrigatoriamente, no máximo a cada dois dias úteis até a conclusão; o registro deve estar nos comentários da tarefa. |
 | Projeto | Relação `Projeto` é recomendada, mas não obrigatória. |
-| Conclusão | Tarefa `Feito` não é cobrada por cadência de atualização. |
+| Conclusão | Tarefa `Feito` sai do mapa de alertas e não gera achados. |
 
 Para `Para ser aprovada`, a auditoria lê os comentários e procura evidências de teste/aprovação; o alerta `Aguardando aprovação` é destinado ao aprovador e orienta incluir evidências nos comentários e registrar como feito caso os testes tenham sucesso. Para `Bloqueada`, a auditoria lê as menções nos comentários e direciona a cobrança ao último membro da equipe mencionado, pedindo avanço ou desbloqueio para levar a tarefa a `Feito`; tarefas bloqueadas não geram alerta de prazo vencido. Os alertas carregam o link da tarefa e nunca escrevem no Notion.
 
