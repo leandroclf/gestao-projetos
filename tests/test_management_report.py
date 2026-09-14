@@ -2,7 +2,7 @@ import unittest
 from datetime import date
 
 from notion_management.management_report import render_management_report, split_management_report
-from notion_management.models import AuditReport, Comment, Record
+from notion_management.models import AuditReport, Comment, Finding, Record
 
 
 class ManagementReportTest(unittest.TestCase):
@@ -88,6 +88,23 @@ class ManagementReportTest(unittest.TestCase):
 
         self.assertEqual(1, message.count("Comentário mais recente (2026-09-14"))
         self.assertEqual(1, message.count("Responsável: Rafael"))
+
+    def test_incomplete_template_does_not_create_agenda_candidate(self) -> None:
+        task = Record(
+            source="tasks",
+            page_id="task-template",
+            title="Tarefa sem template",
+            status="Em Progresso",
+            owner="Rafael",
+            page_url="https://www.notion.so/task-template",
+        )
+        report = AuditReport(records=[task], findings=[
+            Finding("tasks", "task-template", task.title, "template_incomplete", "Documentar template."),
+        ])
+
+        message = render_management_report(report, "manager-1")
+
+        self.assertNotIn("Avaliar pauta: Tarefa sem template", message)
 
 
 if __name__ == "__main__":
