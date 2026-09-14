@@ -38,7 +38,7 @@ def main() -> int:
         if args.send:
             messages = split_management_report(message)
             for part in messages:
-                send_webhook(settings.gchat_gerencial_webhook_url, part, thread_key=args.thread_key, env_name="GCHAT_GERENCIAL_WEBHOOK_URL", payload=build_visual_payload(part, settings.gchat_project_logo_url, "Relatório gerencial — Gestão de Projetos"))
+                send_webhook(settings.gchat_gerencial_webhook_url, part, thread_key=args.thread_key, env_name="GCHAT_GERENCIAL_WEBHOOK_URL", payload=build_visual_payload(part, settings.gchat_project_logo_url, "Relatório gerencial — Gestão de Projetos", "management_report"))
             print(f"{len(messages)} mensagem(ns) do relatório gerencial enviada(s) ao Google Chat.")
     elif args.command == "snapshot":
         path = save_snapshot(report, settings.snapshot_dir)
@@ -58,7 +58,10 @@ def main() -> int:
                 print()
         if args.command == "notify" and args.send:
             def publish(message: str, thread_key: str) -> None:
-                send_webhook(settings.gchat_webhook_url, message, thread_key=args.thread_key or thread_key or DEFAULT_THREAD_KEY, payload=build_visual_payload(message, settings.gchat_project_logo_url, "Alerta — Gestão de Projetos"))
+                publish_with_category(message, thread_key, "general")
+
+            def publish_with_category(message: str, thread_key: str, category: str) -> None:
+                send_webhook(settings.gchat_webhook_url, message, thread_key=args.thread_key or thread_key or DEFAULT_THREAD_KEY, payload=build_visual_payload(message, settings.gchat_project_logo_url, "Alerta — Gestão de Projetos", category))
 
             published = 0
             thread_key = args.thread_key or DEFAULT_THREAD_KEY
@@ -69,7 +72,7 @@ def main() -> int:
                 publish(validation_message(report), thread_key)
                 published += 1
             if not args.initial and not args.validation:
-                sent = send_pending_alerts(report, Path(settings.gchat_alert_state_file), publish, force=args.force, thread_key=thread_key, rules=rules)
+                sent = send_pending_alerts(report, Path(settings.gchat_alert_state_file), publish, force=args.force, thread_key=thread_key, rules=rules, send_with_category=publish_with_category)
                 published = len(sent)
             print(f"{published} mensagem(ns)/alerta(s) enviado(s) ao Google Chat.")
     return 0

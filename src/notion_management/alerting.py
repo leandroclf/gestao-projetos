@@ -40,6 +40,19 @@ class Alert:
     rule: str
     message: str
     fingerprint: str
+    category: str = "general"
+
+
+def alert_category(rule: str) -> str:
+    """Mapeia uma regra de qualidade para a categoria visual do card."""
+    return {
+        "overdue": "overdue",
+        "blocked_follow_up": "blocked",
+        "approval_update_missing": "approval",
+        "approver_missing": "approval",
+        "stale": "stale",
+        "due_date_missing": "stale",
+    }.get(rule, "general")
 
 
 def _record_by_page(report: AuditReport) -> dict[str, Record]:
@@ -89,7 +102,7 @@ def build_alerts(report: AuditReport, rules: set[str] | None = None) -> list[Ale
         findings = [finding for owner_findings in owners.values() for finding in owner_findings]
         sections = [_format_group(owner, owners[owner], records) for owner in sorted(owners)]
         message = f"*Alerta de acompanhamento — {ALERT_LABELS[rule]}*\n\n" + "\n\n".join(sections)
-        alerts.append(Alert(rule=rule, message=message, fingerprint=_fingerprint(findings)))
+        alerts.append(Alert(rule=rule, message=message, fingerprint=_fingerprint(findings), category=alert_category(rule)))
     return alerts
 
 
@@ -130,7 +143,7 @@ def _write_state(path: Path, state: dict[str, dict[str, str]]) -> None:
     os.replace(temporary_path, path)
 
 
-def send_pending_alerts(report: AuditReport, state_path: Path, send: Callable[[str, str], None], force: bool = False, thread_key: str = DEFAULT_THREAD_KEY, rules: set[str] | None = None) -> list[Alert]:
+def send_pending_alerts(report: AuditReport, state_path: Path, send: Callable[[str, str], None], force: bool = False, thread_key: str = DEFAULT_THREAD_KEY, rules: set[str] | None = None, send_with_category: Callable[[str, str, str], None] | None = None) -> list[Alert]:
     state = _read_state(state_path)
     sent: list[Alert] = []
     for alert in pending_alerts(report, rules=rules):
@@ -139,7 +152,10 @@ def send_pending_alerts(report: AuditReport, state_path: Path, send: Callable[[s
         state["alerts"][alert.rule] = alert.fingerprint
         _write_state(state_path, state)
         try:
-            send(alert.message, thread_key)
+            if send_with_category:
+                send_with_category(alert.message, thread_key, alert.category)
+            else:
+                send(alert.message, thread_key)
         except Exception:
             state["alerts"].pop(alert.rule, None)
             _write_state(state_path, state)

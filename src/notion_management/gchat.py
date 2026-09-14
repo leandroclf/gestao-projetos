@@ -4,32 +4,32 @@ import re
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 
+from .brand import PROJECT_NAME, semantic_color
 
-def _card_html(text: str, context: str = "") -> str:
+
+def _card_html(text: str, category: str = "general") -> str:
     value = html.escape(text)
     value = re.sub(r"\[([^\]]+)\]\((https?://[^)]+)\)", r'<a href="\2">\1</a>', value)
     value = re.sub(r"(?<![\"=])(https?://[^\s<]+)", r'<a href="\1">\1</a>', value)
     value = re.sub(r"\*([^*\n]+)\*", r"<b>\1</b>", value)
     value = value.replace("\n", "<br>")
-    color_context = f"{context} {text}"
-    if any(term in color_context for term in ("Prazo vencido", "Bloqueada", "bloqueio")):
-        return f'<font color="#B3261E">{value}</font>'
-    if any(term in color_context for term in ("aprovação", "Aprovador", "sem prazo", "Atualização pendente")):
-        return f'<font color="#9A6700">{value}</font>'
-    if any(term in color_context for term in ("Feito", "conclu")):
-        return f'<font color="#137333">{value}</font>'
-    return value
+    return f'<font color="{semantic_color(category)}">{value}</font>' if category != "general" else value
 
 
-def build_visual_payload(message: str, logo_url: str = "", title: str = "Gestão de Projetos") -> dict:
+def build_visual_payload(
+    message: str,
+    logo_url: str = "",
+    title: str = PROJECT_NAME,
+    category: str = "general",
+) -> dict:
     """Monta uma mensagem com texto de fallback e card visual para o Google Chat."""
     blocks = message.split("\n\n")
     header_text = blocks[0].replace("*", "") if blocks else title
     widgets: list[dict] = []
-    for block in blocks[1:]:
+    for block in blocks:
         if not block.strip():
             continue
-        widgets.append({"textParagraph": {"text": _card_html(block, message)}})
+        widgets.append({"textParagraph": {"text": _card_html(block, category)}})
         urls = re.findall(r"https?://[^\s)]+", block)
         if urls:
             widgets.append({"buttonList": {"buttons": [{
