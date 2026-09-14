@@ -24,23 +24,23 @@ Nas tarefas `Para ser aprovada`, o alerta `Aguardando aprovação` cobra do apro
 
 O alerta `Template incompleto` está desabilitado na fase 1 para evitar ruído durante a calibração dos critérios. A implementação permanece pronta para a fase 2; quando habilitada, será gerada para tarefas e projetos ativos em escopo com seções ausentes do template técnico ou, no projeto, sem a propriedade `Descrição`. Registros `Feito` não são avaliados nem alertados.
 
-## Agendamento futuro
+## Agendamento ativo no host
 
-O projeto está pronto para ser chamado por cron, CI, Cloud Run Job ou outro executor autorizado, mas nenhum agendamento é ativado por este repositório. A rotina recomendada é:
+O manifesto `ops/gestao-projetos.cron` define o agendamento do host. A instalação é feita no crontab do usuário, com execução protegida por `flock` para impedir sobreposição. A rotina é:
 
-1. executar `snapshot` diariamente ou em cada ciclo de gestão;
-2. executar `notify --send` nos ciclos definidos; a deduplicação impede repetição quando o conjunto de pendências não mudou;
+1. executar `notify --send` nos ciclos definidos; a deduplicação impede repetição quando o conjunto de pendências não mudou;
 3. armazenar `NOTION_TOKEN` e `GCHAT_WEBHOOK_URL` no cofre de segredos do ambiente;
 4. manter logs sem tokens, webhooks ou conteúdo sensível;
 5. alertar quando a execução falhar, sem transformar falha técnica em mensagem falsa de saúde.
 
-Exemplo de cron local, para ser adaptado e aprovado no ambiente operacional:
+Manifesto de cron instalado no host:
 
 ```cron
-0 8 * * 1-5 cd <raiz-do-repositorio> && PYTHONPATH=src /usr/bin/python3 -m notion_management snapshot >> /var/log/gestao-projetos.log 2>&1
+0 8 * * 1,3,5 cd /home/leandro/IdeaProjects/lfsolucoes/gestao-projetos && /usr/bin/flock -n /tmp/gestao-projetos-alertas.lock /usr/bin/env PYTHONPATH=src /usr/bin/python3 -m notion_management notify --send --rules overdue,stale,approval_update_missing,blocked_follow_up >> reports/cron-alertas.log 2>&1
+0 8 * * 2,4 cd /home/leandro/IdeaProjects/lfsolucoes/gestao-projetos && /usr/bin/flock -n /tmp/gestao-projetos-alertas.lock /usr/bin/env PYTHONPATH=src /usr/bin/python3 -m notion_management notify --send --rules overdue,stale,approval_update_missing,blocked_follow_up,due_date_missing >> reports/cron-alertas.log 2>&1
 ```
 
-No host, o cron deve executar às 8h em dias úteis os alertas `stale`, `overdue`, `approval_update_missing` e `blocked_follow_up`. Às terças e quintas, deve incluir `due_date_missing`. `urgent_without_project` está desabilitado na fase atual. O estado deve permanecer persistido em `GCHAT_ALERT_STATE_FILE`.
+No host, o cron executa às 8h em dias úteis os alertas `stale`, `overdue`, `approval_update_missing` e `blocked_follow_up`. Às terças e quintas, inclui `due_date_missing`. `urgent_without_project` está desabilitado na fase atual. O estado permanece persistido em `GCHAT_ALERT_STATE_FILE`.
 
 ## Baseline validado — 12/09/2026
 
