@@ -14,13 +14,15 @@ PYTHONPATH=src python3 -m notion_management report
 PYTHONPATH=src python3 -m notion_management report --send
 ```
 
-O envio usa `GCHAT_GERENCIAL_WEBHOOK_URL` e a thread `gestao-gerencial` por padrão. O webhook operacional (`GCHAT_WEBHOOK_URL`) não é usado pelo relatório. A publicação é dividida em mensagens sequenciais quando necessário para preservar o relatório completo.
+O envio usa `GCHAT_GERENCIAL_WEBHOOK_URL` e a thread `gestao-gerencial` por padrão. O webhook operacional (`GCHAT_WEBHOOK_URL`) não é usado pelo relatório. A publicação é dividida em mensagens sequenciais quando necessário para preservar o relatório completo. As mensagens usam cards `cardsV2` com o nome do projeto, logo opcional, formatação visual por categoria e botões para abrir os links; o campo `text` permanece como fallback.
+
+Configure `GCHAT_PROJECT_LOGO_URL` com uma URL HTTPS de uma imagem PNG ou JPEG quadrada para exibir a identidade visual no cabeçalho do card. O nome e o avatar do remetente principal continuam sendo configurados no cadastro do webhook dentro do espaço do Google Chat.
 
 ## Seções e critérios
 
 ### Acompanhamento de tarefas
 
-Inclui tarefas no escopo de Integrações com status `Em Progresso`, `Bloqueada` ou `Para ser aprovada`. Exibe responsável, status, prazo, última atividade/status, comentário mais recente e link.
+Inclui tarefas no escopo de Integrações com status `Em Progresso`, `Bloqueada` ou `Para ser aprovada`. Exibe responsável, status, prazo, última atividade/status, comentário mais recente e link. Para tarefas `Para ser aprovada`, exibe também o campo `Aprovador(es)` com as pessoas da propriedade `Aprovadora`.
 
 ### Acompanhamento de projetos
 
@@ -59,5 +61,6 @@ systemctl --user daemon-reload
 
 - `last_edited_time` é uma aproximação da última atividade quando não há propriedade de atualização preenchida; não comprova autoria nem que a alteração foi comentário.
 - Comentários são resumidos em até 500 caracteres por item para manter legibilidade.
+- A autoria vem do campo `created_by` retornado pelo Notion. Se esse campo não estiver disponível, o relatório informa `Autor não identificado`.
 - O relatório depende de a integração ter acesso às páginas e aos comentários das quatro fontes.
 - Registros COLTEC fora do escopo ou sem o gestor como responsável não entram na seção de responsabilidade, embora possam ser considerados na auditoria geral conforme a regra de escopo.

@@ -1,5 +1,5 @@
 [Unit]
-Description=Alertas e relatório gerencial da equipe de Integrações
+Description=Alertas e relatório gerencial visual da equipe de Integrações
 
 [Service]
 Type=oneshot

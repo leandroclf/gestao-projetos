@@ -61,9 +61,11 @@ O comando `report` reutiliza a consulta, normalização e regra de escopo existe
 
 Cada atividade inclui responsável, status, prazo quando aplicável, data da última atividade/status, comentário mais recente e link direto. A data de atividade usa a propriedade configurada de última atualização e, quando ausente, o `last_edited_time` da página. O comentário mais recente é obtido pela API de discussões do Notion.
 
+Quando uma tarefa está em `Para ser aprovada`, o relatório e os alertas exibem também o(s) responsável(is) pela aprovação (`Aprovadora`). Qualquer comentário apresentado por uma extração inclui o autor retornado em `created_by`; quando a API não informar o autor, a saída usa `Autor não identificado`.
+
 A seção de menções identifica menções estruturadas ao ID de `NOTION_MANAGER_ID` nos comentários. As sugestões de pauta são candidatas geradas a partir de achados de bloqueio, aprovação, prazo, atualização ou menção ao gestor. Os registros da COLTEC sob responsabilidade do gestor são apresentados como candidatos a desdobramento em projeto/tarefa após confirmação da decisão. Essas sugestões não escrevem no Notion e não criam demandas automaticamente.
 
-O webhook gerencial recebe o relatório em uma thread própria (`gestao-gerencial`). Quando o conteúdo ultrapassa o limite seguro por mensagem, o envio é dividido em blocos completos na mesma thread, preservando todas as seções e registros.
+O webhook gerencial recebe o relatório em uma thread própria (`gestao-gerencial`). As mensagens são publicadas com texto de fallback e cards `cardsV2`, usando cabeçalho, logo opcional, cores por categoria e botão para abrir o primeiro link do registro. Quando o conteúdo ultrapassa o limite seguro por mensagem, o envio é dividido em blocos completos na mesma thread, preservando todas as seções e registros. O webhook continua limitado ao espaço em que foi criado e não recebe respostas interativas.
 
 ## Fluxo
 

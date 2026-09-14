@@ -24,6 +24,10 @@ O relatório gerencial é somente leitura e pode ser conferido com `PYTHONPATH=s
 
 O relatório também lista as demandas de clientes ativas da área de Integrações. Na seção de apoio à pauta, uma tarefa ou projeto pode ser sugerido para avaliação na COLTEC quando houver achado de bloqueio, aprovação, prazo vencido, atualização pendente ou menção ao gestor. Registros da COLTEC sob responsabilidade do gestor aparecem como candidatos para avaliar a criação de projeto ou tarefa após uma decisão. Essas são sugestões gerenciais; nenhuma alteração ou criação é feita automaticamente.
 
+Regra transversal de identificação: toda tarefa em `Para ser aprovada` deve exibir o(s) aprovador(es) na mensagem de alerta e no relatório gerencial. Todo comentário exibido deve informar o autor registrado pelo Notion. Se o retorno da API não trouxer `created_by`, informar `Autor não identificado`; não inferir autoria pelo texto do comentário.
+
+As mensagens operacionais e gerenciais são enviadas com cards `cardsV2`, cabeçalho de Gestão de Projetos e botões de abertura dos links. Para exibir o logo do projeto, configure `GCHAT_PROJECT_LOGO_URL` com uma URL HTTPS de imagem PNG ou JPEG. O envio divide relatórios grandes em blocos de até 20.000 caracteres para manter o payload dentro do limite seguro do Google Chat.
+
 Quando o relatório excede o limite seguro do webhook, a CLI envia vários blocos completos na mesma thread. A mensagem exibida no terminal permanece integral para conferência local.
 
 Nas tarefas `Para ser aprovada`, o alerta `Aguardando aprovação` cobra do aprovador a inclusão das evidências dos testes nos comentários e o registro como feito caso os testes tenham sucesso. Nas tarefas `Bloqueada`, a automação lê as menções dos comentários e cobra o último membro da equipe mencionado no contexto do bloqueio para registrar avanço ou desbloqueio. Tarefas bloqueadas não geram alerta de prazo vencido. Cada item inclui seu link direto no Notion; sem menção identificável, a cobrança recai sobre o responsável da tarefa.
