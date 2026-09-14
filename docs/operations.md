@@ -40,7 +40,7 @@ Exemplo de cron local, para ser adaptado e aprovado no ambiente operacional:
 0 8 * * 1-5 cd <raiz-do-repositorio> && PYTHONPATH=src /usr/bin/python3 -m notion_management snapshot >> /var/log/gestao-projetos.log 2>&1
 ```
 
-As frequências recomendadas são: `stale` diariamente em dias úteis; `overdue` diariamente em dias úteis; `due_date_missing` duas vezes por semana; `approver_missing` diariamente em dias úteis; `owner_missing` diariamente em dias úteis; e `urgent_without_project` imediatamente no próximo ciclo. O agendamento deve ser configurado fora deste repositório, com o ambiente autorizado e o estado persistido.
+No host, o cron deve executar às 8h em dias úteis os alertas `stale`, `overdue`, `approval_update_missing` e `blocked_follow_up`. Às terças e quintas, deve incluir `due_date_missing`. `urgent_without_project` está desabilitado na fase atual. O estado deve permanecer persistido em `GCHAT_ALERT_STATE_FILE`.
 
 ## Baseline validado — 12/09/2026
 

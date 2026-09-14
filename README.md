@@ -76,6 +76,8 @@ Para acompanhar tendência, execute `snapshot` uma vez por período em um ambien
 
 O agendamento deve ser configurado posteriormente no ambiente operacional escolhido, com armazenamento seguro das variáveis do `.env`, logs sem segredos, timeout, retry e controle de duplicidade. Este repositório não ativa cron, CI ou qualquer scheduler automaticamente.
 
+No host definido para esta operação, o cron deve executar alertas diariamente em dias úteis às 8h e incluir `due_date_missing` adicionalmente às terças e quintas. `urgent_without_project` e `template_incomplete` permanecem desabilitados na fase atual.
+
 ## Próximos incrementos seguros
 
 1. Validar os snapshots por algumas semanas contra os painéis dinâmicos do Notion.

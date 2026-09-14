@@ -21,6 +21,7 @@ def main() -> int:
     notify_parser.add_argument("--force", action="store_true", help="Reenvia alertas mesmo sem mudança desde o último envio.")
     notify_parser.add_argument("--initial", action="store_true", help="Publica a mensagem inicial de apresentação.")
     notify_parser.add_argument("--validation", action="store_true", help="Publica a mensagem de validação com as pendências atuais.")
+    notify_parser.add_argument("--rules", default="", help="Regras separadas por vírgula para este ciclo de alerta.")
     sub.add_parser("snapshot", help="Executa a auditoria e salva um baseline JSON local.")
     args = parser.parse_args()
     settings = Settings.from_environment()
@@ -31,7 +32,8 @@ def main() -> int:
     elif args.command == "audit" and args.json:
         print(json.dumps(asdict(report), ensure_ascii=False, default=str, indent=2))
     else:
-        alerts = pending_alerts(report)
+        rules = {rule.strip() for rule in args.rules.split(",") if rule.strip()} or None
+        alerts = pending_alerts(report, rules=rules)
         if not alerts:
             print("Nenhuma pendência acionável no escopo da equipe de Integrações.")
         else:
@@ -51,7 +53,7 @@ def main() -> int:
                 publish(validation_message(report), thread_key)
                 published += 1
             if not args.initial and not args.validation:
-                sent = send_pending_alerts(report, Path(settings.gchat_alert_state_file), publish, force=args.force, thread_key=thread_key)
+                sent = send_pending_alerts(report, Path(settings.gchat_alert_state_file), publish, force=args.force, thread_key=thread_key, rules=rules)
                 published = len(sent)
             print(f"{published} mensagem(ns)/alerta(s) enviado(s) ao Google Chat.")
     return 0

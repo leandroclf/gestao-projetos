@@ -50,6 +50,12 @@ class AlertingTest(unittest.TestCase):
         )
         self.assertEqual([], pending_alerts(report))
 
+    def test_p0_alert_is_disabled_and_rule_filter_selects_categories(self) -> None:
+        report = AuditReport(findings=[Finding("requests", "1", "P0", "urgent_without_project", "Criar projeto.")])
+        self.assertEqual([], pending_alerts(report))
+        report = self._report()
+        self.assertEqual(["overdue"], [alert.rule for alert in pending_alerts(report, rules={"overdue"})])
+
     def test_limits_each_responsible_group_to_three_examples(self) -> None:
         report = self._report()
         report.findings.extend(

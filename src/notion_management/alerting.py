@@ -21,7 +21,7 @@ ALERT_LABELS = {
 ALERT_ORDER = tuple(ALERT_LABELS)
 MAX_EXAMPLES_PER_OWNER = 3
 DEFAULT_THREAD_KEY = "gestao-integracoes"
-DISABLED_ALERT_RULES = {"template_incomplete"}
+DISABLED_ALERT_RULES = {"template_incomplete", "urgent_without_project"}
 
 INTRO_MESSAGE = """*Evolução do acompanhamento — Equipe de Integrações*
 
@@ -62,11 +62,11 @@ def _format_group(owner: str, findings: list[Finding]) -> str:
     return "\n".join(lines)
 
 
-def build_alerts(report: AuditReport) -> list[Alert]:
+def build_alerts(report: AuditReport, rules: set[str] | None = None) -> list[Alert]:
     records = _record_by_page(report)
     grouped: dict[str, dict[str, list[Finding]]] = {}
     for finding in report.findings:
-        if finding.rule not in ALERT_LABELS or finding.rule in DISABLED_ALERT_RULES:
+        if finding.rule not in ALERT_LABELS or finding.rule in DISABLED_ALERT_RULES or (rules is not None and finding.rule not in rules):
             continue
         record = records.get(finding.page_id, Record(source="", page_id="", title=""))
         recipient = finding.recipient or record.owner or "Responsável não identificado"
@@ -85,8 +85,8 @@ def build_alerts(report: AuditReport) -> list[Alert]:
     return alerts
 
 
-def pending_alerts(report: AuditReport) -> list[Alert]:
-    return build_alerts(report)
+def pending_alerts(report: AuditReport, rules: set[str] | None = None) -> list[Alert]:
+    return build_alerts(report, rules=rules)
 
 
 def validation_message(report: AuditReport) -> str:
@@ -106,10 +106,10 @@ def _read_state(path: Path) -> dict[str, dict[str, str]]:
     return value if isinstance(value, dict) and isinstance(value.get("alerts"), dict) else {"alerts": {}}
 
 
-def send_pending_alerts(report: AuditReport, state_path: Path, send: Callable[[str, str], None], force: bool = False, thread_key: str = DEFAULT_THREAD_KEY) -> list[Alert]:
+def send_pending_alerts(report: AuditReport, state_path: Path, send: Callable[[str, str], None], force: bool = False, thread_key: str = DEFAULT_THREAD_KEY, rules: set[str] | None = None) -> list[Alert]:
     state = _read_state(state_path)
     sent: list[Alert] = []
-    for alert in pending_alerts(report):
+    for alert in pending_alerts(report, rules=rules):
         if not force and state["alerts"].get(alert.rule) == alert.fingerprint:
             continue
         send(alert.message, thread_key)
