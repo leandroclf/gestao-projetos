@@ -1,5 +1,7 @@
 import hashlib
 import json
+import os
+import tempfile
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Callable
@@ -22,6 +24,7 @@ ALERT_ORDER = tuple(ALERT_LABELS)
 MAX_EXAMPLES_PER_OWNER = 3
 DEFAULT_THREAD_KEY = "gestao-integracoes"
 DISABLED_ALERT_RULES = {"template_incomplete", "urgent_without_project"}
+DAILY_ALERT_RULES = {"overdue", "stale", "approval_update_missing", "blocked_follow_up"}
 
 INTRO_MESSAGE = """*Evolução do acompanhamento — Equipe de Integrações*
 
@@ -89,6 +92,13 @@ def pending_alerts(report: AuditReport, rules: set[str] | None = None) -> list[A
     return build_alerts(report, rules=rules)
 
 
+def scheduled_rules(weekday: int) -> set[str]:
+    rules = set(DAILY_ALERT_RULES)
+    if weekday in {1, 3}:
+        rules.add("due_date_missing")
+    return rules
+
+
 def validation_message(report: AuditReport) -> str:
     alerts = pending_alerts(report)
     if not alerts:
@@ -106,15 +116,29 @@ def _read_state(path: Path) -> dict[str, dict[str, str]]:
     return value if isinstance(value, dict) and isinstance(value.get("alerts"), dict) else {"alerts": {}}
 
 
+def _write_state(path: Path, state: dict[str, dict[str, str]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, delete=False) as temporary:
+        json.dump(state, temporary, ensure_ascii=False, indent=2)
+        temporary.write("\n")
+        temporary_path = temporary.name
+    os.replace(temporary_path, path)
+
+
 def send_pending_alerts(report: AuditReport, state_path: Path, send: Callable[[str, str], None], force: bool = False, thread_key: str = DEFAULT_THREAD_KEY, rules: set[str] | None = None) -> list[Alert]:
     state = _read_state(state_path)
     sent: list[Alert] = []
     for alert in pending_alerts(report, rules=rules):
         if not force and state["alerts"].get(alert.rule) == alert.fingerprint:
             continue
-        send(alert.message, thread_key)
         state["alerts"][alert.rule] = alert.fingerprint
+        _write_state(state_path, state)
+        try:
+            send(alert.message, thread_key)
+        except Exception:
+            state["alerts"].pop(alert.rule, None)
+            _write_state(state_path, state)
+            raise
         sent.append(alert)
-    state_path.parent.mkdir(parents=True, exist_ok=True)
-    state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    _write_state(state_path, state)
     return sent

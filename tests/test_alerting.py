@@ -4,7 +4,7 @@ import unittest
 from datetime import date, timedelta
 from pathlib import Path
 
-from notion_management.alerting import build_alerts, pending_alerts, send_pending_alerts, validation_message
+from notion_management.alerting import build_alerts, pending_alerts, scheduled_rules, send_pending_alerts, validation_message
 from notion_management.models import AuditReport, Finding, Record
 
 
@@ -55,6 +55,11 @@ class AlertingTest(unittest.TestCase):
         self.assertEqual([], pending_alerts(report))
         report = self._report()
         self.assertEqual(["overdue"], [alert.rule for alert in pending_alerts(report, rules={"overdue"})])
+
+    def test_schedule_adds_missing_due_date_only_on_tuesday_and_thursday(self) -> None:
+        self.assertNotIn("due_date_missing", scheduled_rules(0))
+        self.assertIn("due_date_missing", scheduled_rules(1))
+        self.assertIn("due_date_missing", scheduled_rules(3))
 
     def test_limits_each_responsible_group_to_three_examples(self) -> None:
         report = self._report()

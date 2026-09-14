@@ -70,5 +70,5 @@ Google Chat webhook
 - Não cria projeto ou tarefa automaticamente.
 - Não altera comentários nem propriedades.
 - Não substitui as visões dinâmicas do Notion.
-- Não ativa agendamento externo por conta própria.
+- O agendamento do host é mantido nas unidades versionadas em `ops/systemd/`.
 - Webhook do GChat cobre publicação simples; leitura de espaços e autenticação avançada ficam para uma etapa posterior com credenciais próprias do Google Workspace.

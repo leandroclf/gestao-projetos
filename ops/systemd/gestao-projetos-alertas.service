@@ -1,0 +1,8 @@
+[Unit]
+Description=Alertas de acompanhamento da equipe de Integrações
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/leandro/IdeaProjects/lfsolucoes/gestao-projetos
+Environment=PYTHONPATH=src
+ExecStart=/usr/bin/python3 -m notion_management notify --send --schedule

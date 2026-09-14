@@ -1,0 +1,10 @@
+[Unit]
+Description=Agendamento dos alertas de acompanhamento da equipe de Integrações
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 08:00:00
+Persistent=true
+Unit=gestao-projetos-alertas.service
+
+[Install]
+WantedBy=timers.target

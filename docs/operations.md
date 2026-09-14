@@ -26,21 +26,21 @@ O alerta `Template incompleto` está desabilitado na fase 1 para evitar ruído d
 
 ## Agendamento ativo no host
 
-O manifesto `ops/gestao-projetos.cron` define o agendamento do host. A instalação é feita no crontab do usuário, com execução protegida por `flock` para impedir sobreposição. A rotina é:
+O timer de usuário `ops/systemd/gestao-projetos-alertas.timer` define o agendamento do host. A unidade é persistente e executa a última ocorrência perdida quando a máquina retorna. A rotina é:
 
 1. executar `notify --send` nos ciclos definidos; a deduplicação impede repetição quando o conjunto de pendências não mudou;
 3. armazenar `NOTION_TOKEN` e `GCHAT_WEBHOOK_URL` no cofre de segredos do ambiente;
 4. manter logs sem tokens, webhooks ou conteúdo sensível;
 5. alertar quando a execução falhar, sem transformar falha técnica em mensagem falsa de saúde.
 
-Manifesto de cron instalado no host:
+Manifesto do timer instalado no host:
 
-```cron
-0 8 * * 1,3,5 cd /home/leandro/IdeaProjects/lfsolucoes/gestao-projetos && /usr/bin/flock -n /tmp/gestao-projetos-alertas.lock /usr/bin/env PYTHONPATH=src /usr/bin/python3 -m notion_management notify --send --rules overdue,stale,approval_update_missing,blocked_follow_up >> reports/cron-alertas.log 2>&1
-0 8 * * 2,4 cd /home/leandro/IdeaProjects/lfsolucoes/gestao-projetos && /usr/bin/flock -n /tmp/gestao-projetos-alertas.lock /usr/bin/env PYTHONPATH=src /usr/bin/python3 -m notion_management notify --send --rules overdue,stale,approval_update_missing,blocked_follow_up,due_date_missing >> reports/cron-alertas.log 2>&1
+```ini
+OnCalendar=Mon..Fri *-*-* 08:00:00
+Persistent=true
 ```
 
-No host, o cron executa às 8h em dias úteis os alertas `stale`, `overdue`, `approval_update_missing` e `blocked_follow_up`. Às terças e quintas, inclui `due_date_missing`. `urgent_without_project` está desabilitado na fase atual. O estado permanece persistido em `GCHAT_ALERT_STATE_FILE`.
+No host, o timer executa às 8h em dias úteis os alertas `stale`, `overdue`, `approval_update_missing` e `blocked_follow_up`. Às terças e quintas, inclui `due_date_missing`. `urgent_without_project` está desabilitado na fase atual. O estado permanece persistido em `GCHAT_ALERT_STATE_FILE`.
 
 ## Baseline validado — 12/09/2026
 

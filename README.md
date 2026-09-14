@@ -74,9 +74,9 @@ Os valores devem ser comparados com as visões dinâmicas do [Painel de Gestão 
 
 Para acompanhar tendência, execute `snapshot` uma vez por período em um ambiente autorizado. O comando é local e somente leitura no Notion. Para publicar um resumo manual no espaço configurado, use `notify --send`; para agrupar alertas em uma conversa do Google Chat, informe `--thread-key <chave-estavel>`.
 
-O agendamento do host está definido em `ops/gestao-projetos.cron`, com armazenamento seguro das variáveis do `.env`, logs sem segredos, timeout, retry e controle de duplicidade. CI e outros schedulers não são ativados por este repositório.
+O agendamento do host está definido em `ops/systemd/gestao-projetos-alertas.timer`, com armazenamento seguro das variáveis do `.env`, logs no journal, timeout, retry e controle de duplicidade. CI e outros schedulers não são ativados por este repositório.
 
-No host definido para esta operação, o cron deve executar alertas diariamente em dias úteis às 8h e incluir `due_date_missing` adicionalmente às terças e quintas. `urgent_without_project` e `template_incomplete` permanecem desabilitados na fase atual.
+No host definido para esta operação, o systemd timer executa alertas diariamente em dias úteis às 8h e inclui `due_date_missing` adicionalmente às terças e quintas. `urgent_without_project` e `template_incomplete` permanecem desabilitados na fase atual.
 
 ## Próximos incrementos seguros
 

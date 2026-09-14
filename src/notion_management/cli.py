@@ -1,9 +1,10 @@
 import argparse
 import json
+from datetime import datetime
 from dataclasses import asdict
 from pathlib import Path
 
-from .alerting import DEFAULT_THREAD_KEY, INTRO_MESSAGE, pending_alerts, send_pending_alerts, validation_message
+from .alerting import DEFAULT_THREAD_KEY, INTRO_MESSAGE, pending_alerts, scheduled_rules, send_pending_alerts, validation_message
 from .config import Settings
 from .gchat import send_webhook
 from .snapshot import save_snapshot
@@ -22,6 +23,7 @@ def main() -> int:
     notify_parser.add_argument("--initial", action="store_true", help="Publica a mensagem inicial de apresentação.")
     notify_parser.add_argument("--validation", action="store_true", help="Publica a mensagem de validação com as pendências atuais.")
     notify_parser.add_argument("--rules", default="", help="Regras separadas por vírgula para este ciclo de alerta.")
+    notify_parser.add_argument("--schedule", action="store_true", help="Aplica a seleção diária ou de terça/quinta do agendamento do host.")
     sub.add_parser("snapshot", help="Executa a auditoria e salva um baseline JSON local.")
     args = parser.parse_args()
     settings = Settings.from_environment()
@@ -33,6 +35,8 @@ def main() -> int:
         print(json.dumps(asdict(report), ensure_ascii=False, default=str, indent=2))
     else:
         rules = {rule.strip() for rule in args.rules.split(",") if rule.strip()} or None
+        if args.schedule:
+            rules = scheduled_rules(datetime.now().weekday())
         alerts = pending_alerts(report, rules=rules)
         if not alerts:
             print("Nenhuma pendência acionável no escopo da equipe de Integrações.")
