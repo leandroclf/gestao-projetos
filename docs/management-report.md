@@ -45,6 +45,14 @@ As sugestões são informativas e não alteram dados:
 
 O relatório não interpreta uma sugestão como decisão, não cria projeto/tarefa e não altera status, propriedades ou comentários.
 
+## Identidade da mensagem
+
+O relatório usa o posicionamento digital da HIVEPlace e a paleta centralizada em
+`src/notion_management/brand.py`. O cabeçalho usa o nome do relatório, logo
+opcional e categoria `management_report`; o corpo mantém o texto de fallback e
+links acionáveis. A comunicação é objetiva e orientada à decisão, sem atribuir
+culpa. O padrão completo está em `docs/brand-communication.md`.
+
 ## Menções ao gestor
 
 A seção de itens mencionados verifica as menções estruturadas nos comentários por meio do ID configurado em `NOTION_MANAGER_ID`. Texto comum contendo o nome do gestor, sem uma menção de usuário do Notion, não é tratado como notificação confiável.

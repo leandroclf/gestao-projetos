@@ -49,6 +49,15 @@ O campo `last_edited_time` é usado como proxy da última atualização. Ele nã
 
 IDs de bases, token e webhooks vêm de variáveis de ambiente. O `.env.example` documenta os nomes. A aplicação lê um `.env` local com um parser próprio de pares simples, sem executá-lo como shell; variáveis já presentes no ambiente têm precedência. `GCHAT_WEBHOOK_URL` é o destino operacional dos alertas; `GCHAT_GERENCIAL_WEBHOOK_URL` é o destino exclusivo do relatório gerencial.
 
+### Identidade visual e renderização
+
+Os tokens institucionais e as cores semânticas ficam centralizados em
+`brand.py`; a lógica não deve espalhar hexadecimais. Cards recebem uma categoria
+visual explícita, separando identidade da classificação operacional. O texto de
+fallback permanece completo porque o webhook não garante a mesma apresentação
+em todos os clientes do Google Chat. As regras de voz, paleta, tipografia e
+estrutura de mensagem estão em `docs/brand-communication.md`.
+
 ### Relatório gerencial
 
 O comando `report` reutiliza a consulta, normalização e regra de escopo existentes, mas apresenta o resultado em seções gerenciais independentes:

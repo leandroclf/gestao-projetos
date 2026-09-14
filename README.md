@@ -80,6 +80,14 @@ Para gerar o relatório gerencial completo, execute `PYTHONPATH=src python3 -m n
 
 O agendamento do host está definido em `ops/systemd/gestao-projetos-alertas.timer`, com armazenamento seguro das variáveis do `.env`, logs no journal, timeout, retry e controle de duplicidade. CI e outros schedulers não são ativados por este repositório.
 
+## Identidade visual e comunicação
+
+Alertas e relatórios usam cards com a identidade digital da HIVEPlace, categorias
+semânticas, links acionáveis e linguagem objetiva orientada à próxima ação. As
+regras de voz, paleta, tipografia e revisão estão em
+[`docs/brand-communication.md`](docs/brand-communication.md). Os tokens visuais
+ficam centralizados em `src/notion_management/brand.py`.
+
 No host definido para esta operação, o systemd timer executa alertas diariamente em dias úteis às 8h e inclui `due_date_missing` adicionalmente às terças e quintas. `urgent_without_project` e `template_incomplete` permanecem desabilitados na fase atual.
 
 ## Próximos incrementos seguros
