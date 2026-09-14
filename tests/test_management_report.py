@@ -17,8 +17,8 @@ class ManagementReportTest(unittest.TestCase):
             updated_at=date(2026, 9, 14),
             page_url="https://www.notion.so/task-1",
             comments=(
-                Comment(date(2026, 9, 13), "Atualização antiga"),
-                Comment(date(2026, 9, 14), "@Leandro, preciso da sua decisão.", (manager_id,), ("Leandro",)),
+                Comment(date(2026, 9, 13), "Atualização antiga", author_name="Amanda"),
+                Comment(date(2026, 9, 14), "@Leandro, preciso da sua decisão.", (manager_id,), ("Leandro",), author_name="Rafael"),
             ),
         )
         project = Record(
@@ -49,12 +49,13 @@ class ManagementReportTest(unittest.TestCase):
         self.assertIn("3 registro(s)", message)
         self.assertIn("Tarefa ativa", message)
         self.assertIn("Responsável: Rafael", message)
-        self.assertIn("Comentário mais recente (2026-09-14): @Leandro, preciso da sua decisão.", message)
+        self.assertIn("Comentário mais recente (2026-09-14 — Autor: Rafael): @Leandro, preciso da sua decisão.", message)
+        self.assertIn("Autor: Rafael", message)
         self.assertIn("Projeto bloqueado", message)
         self.assertIn("Acompanhamento de assuntos e ações da COLTEC", message)
         self.assertIn("Ação COLTEC", message)
         self.assertIn("Itens em que Leandro foi mencionado", message)
-        self.assertIn("Menção mais recente (2026-09-14)", message)
+        self.assertIn("Menção mais recente (2026-09-14 — Autor: Rafael)", message)
         self.assertNotIn("Concluída", message)
 
     def test_splits_large_report_without_losing_blocks(self) -> None:

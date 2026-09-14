@@ -54,12 +54,16 @@ def _fingerprint(findings: list[Finding]) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
-def _format_group(owner: str, findings: list[Finding]) -> str:
+def _format_group(owner: str, findings: list[Finding], records: dict[str, Record]) -> str:
     lines = [f"Responsável: {owner} ({len(findings)} pendência(s))"]
     for finding in findings[:MAX_EXAMPLES_PER_OWNER]:
         link = f" — {finding.url}" if finding.url else ""
         lines.append(f"- {finding.title}{link}")
         lines.append(f"  Responsável: {owner}")
+        record = records.get(finding.page_id)
+        if record and record.status == "Para ser aprovada":
+            approvers = ", ".join(record.approver_names) or "Aprovador não identificado"
+            lines.append(f"  Aprovador(es): {approvers}")
         lines.append(f"  Ação: {finding.message}")
     if len(findings) > MAX_EXAMPLES_PER_OWNER:
         lines.append(f"- ... e mais {len(findings) - MAX_EXAMPLES_PER_OWNER} pendência(s) deste responsável")
@@ -83,7 +87,7 @@ def build_alerts(report: AuditReport, rules: set[str] | None = None) -> list[Ale
         if not owners:
             continue
         findings = [finding for owner_findings in owners.values() for finding in owner_findings]
-        sections = [_format_group(owner, owners[owner]) for owner in sorted(owners)]
+        sections = [_format_group(owner, owners[owner], records) for owner in sorted(owners)]
         message = f"*Alerta de acompanhamento — {ALERT_LABELS[rule]}*\n\n" + "\n\n".join(sections)
         alerts.append(Alert(rule=rule, message=message, fingerprint=_fingerprint(findings)))
     return alerts

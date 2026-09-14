@@ -85,7 +85,8 @@ class AlertingTest(unittest.TestCase):
         self.assertIn("Rafael", message)
 
     def test_approval_alert_uses_new_label_and_action(self) -> None:
-        report = AuditReport(records=[Record(source="tasks", page_id="1", title="Aprovação", owner="Leandro", page_url="https://www.notion.so/1")], findings=[Finding("tasks", "1", "Aprovação", "approval_update_missing", "Aprovador deverá incluir evidências dos testes nos comentários e registrar como feito caso sucesso nos testes.")])
+        report = AuditReport(records=[Record(source="tasks", page_id="1", title="Aprovação", status="Para ser aprovada", owner="Leandro", approver_names=("Camila",), page_url="https://www.notion.so/1")], findings=[Finding("tasks", "1", "Aprovação", "approval_update_missing", "Aprovador deverá incluir evidências dos testes nos comentários e registrar como feito caso sucesso nos testes.")])
         alert = build_alerts(report)[0]
         self.assertIn("Aguardando aprovação", alert.message)
         self.assertIn("evidências dos testes", alert.message)
+        self.assertIn("Aprovador(es): Camila", alert.message)

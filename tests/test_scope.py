@@ -7,9 +7,9 @@ from unittest.mock import patch
 from notion_management.config import Settings
 from notion_management.models import AuditReport, Record
 from notion_management.scope import in_scope
-from notion_management.service import _normalize
+from notion_management.service import _comments, _normalize
 from notion_management.snapshot import save_snapshot
-from notion_management.gchat import send_webhook
+from notion_management.gchat import build_visual_payload, send_webhook
 
 
 class ScopeTest(unittest.TestCase):
@@ -79,6 +79,16 @@ class ScopeTest(unittest.TestCase):
         self.assertEqual(record.owner_id, "member-1")
         self.assertEqual(record.updated_at.isoformat(), "2026-09-10")
 
+    def test_comments_preserve_author(self) -> None:
+        comments = _comments([{
+            "created_time": "2026-09-14T10:00:00.000Z",
+            "created_by": {"id": "author-1", "name": "Amanda"},
+            "rich_text": [{"plain_text": "Atualização registrada."}],
+        }])
+
+        self.assertEqual("author-1", comments[0].author_id)
+        self.assertEqual("Amanda", comments[0].author_name)
+
     def test_snapshot_uses_iso_date_and_serializes_report(self) -> None:
         with TemporaryDirectory() as directory:
             path = save_snapshot(
@@ -101,6 +111,15 @@ class ScopeTest(unittest.TestCase):
             send_webhook("https://chat.example/hook?token=abc", "Alerta", thread_key="gestao-diaria")
         request = mocked_urlopen.call_args.args[0]
         self.assertIn("threadKey=gestao-diaria", request.full_url)
+
+    def test_visual_payload_contains_branding_and_notion_button(self) -> None:
+        payload = build_visual_payload("*Prazo vencido*\n\n- Tarefa — https://www.notion.so/page-1", "https://example.com/logo.png")
+
+        card = payload["cardsV2"][0]["card"]
+        self.assertEqual("Gestão de Projetos", card["header"]["title"])
+        self.assertEqual("https://example.com/logo.png", card["header"]["imageUrl"])
+        self.assertIn("Abrir no Notion", str(payload))
+        self.assertIn('#B3261E', str(payload))
 
 
 if __name__ == "__main__":

@@ -52,6 +52,7 @@ def _comments(raw_comments: list[dict[str, Any]]) -> tuple[Comment, ...]:
         created = raw.get("created_time")
         if not created:
             continue
+        author = raw.get("created_by") or {}
         text_parts: list[str] = []
         user_ids: list[str] = []
         names: list[str] = []
@@ -67,6 +68,8 @@ def _comments(raw_comments: list[dict[str, Any]]) -> tuple[Comment, ...]:
             text="".join(text_parts).strip(),
             mentioned_user_ids=tuple(user_ids),
             mentioned_names=tuple(names),
+            author_id=author.get("id", ""),
+            author_name=author.get("name") or author.get("id", "") or "Autor não identificado",
         ))
     return tuple(sorted(result, key=lambda comment: comment.created_at))
 

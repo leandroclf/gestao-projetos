@@ -8,7 +8,7 @@ from .service import (
 
 
 MANAGEMENT_THREAD_KEY = "gestao-gerencial"
-MAX_GCHAT_MESSAGE_CHARS = 28000
+MAX_GCHAT_MESSAGE_CHARS = 20000
 
 
 def _active(record: Record) -> bool:
@@ -32,6 +32,10 @@ def _comment_text(comment: Comment | None) -> str:
     return text if len(text) <= 500 else text[:497] + "..."
 
 
+def _comment_author(comment: Comment | None) -> str:
+    return (comment.author_name if comment and comment.author_name else "Autor não identificado")
+
+
 def _latest(record: Record) -> Comment | None:
     return max(record.comments, key=lambda comment: comment.created_at, default=None)
 
@@ -51,11 +55,15 @@ def _record_lines(record: Record, include_due_date: bool = False, prefix: str = 
         f"- {prefix}{record.title} — {record.page_url}",
         f"  Responsável: {owner}",
         f"  Status atual: {record.status}",
-        f"  Última atividade/status: {_date(record.updated_at)}",
-        f"  Comentário mais recente ({_date(latest.created_at) if latest else 'não identificado'}): {_comment_text(latest)}",
     ]
     if include_due_date:
-        lines.insert(3, f"  Prazo: {_date(record.due_date)}")
+        lines.append(f"  Prazo: {_date(record.due_date)}")
+    if record.status == "Para ser aprovada":
+        lines.append(f"  Aprovador(es): {', '.join(record.approver_names) or 'Aprovador não identificado'}")
+    lines.extend([
+        f"  Última atividade/status: {_date(record.updated_at)}",
+        f"  Comentário mais recente ({_date(latest.created_at) if latest else 'não identificado'} — Autor: {_comment_author(latest)}): {_comment_text(latest)}",
+    ])
     return lines
 
 
@@ -141,7 +149,7 @@ def render_management_report(report: AuditReport, manager_id: str) -> str:
                 f"- {record.title} — {record.page_url}",
                 f"  Responsável: {record.owner or 'Responsável não identificado'}",
                 f"  Status atual: {record.status}",
-                f"  Menção mais recente ({_date(latest_mention.created_at)}): {_comment_text(latest_mention)}",
+                f"  Menção mais recente ({_date(latest_mention.created_at)} — Autor: {_comment_author(latest_mention)}): {_comment_text(latest_mention)}",
                 "",
             ])
     else:

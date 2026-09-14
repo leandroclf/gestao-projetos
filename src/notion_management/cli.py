@@ -6,7 +6,7 @@ from pathlib import Path
 
 from .alerting import DEFAULT_THREAD_KEY, INTRO_MESSAGE, pending_alerts, scheduled_rules, send_pending_alerts, validation_message
 from .config import Settings
-from .gchat import send_webhook
+from .gchat import build_visual_payload, send_webhook
 from .management_report import MANAGEMENT_THREAD_KEY, render_management_report, split_management_report
 from .snapshot import save_snapshot
 from .service import render_markdown, run_audit
@@ -38,7 +38,7 @@ def main() -> int:
         if args.send:
             messages = split_management_report(message)
             for part in messages:
-                send_webhook(settings.gchat_gerencial_webhook_url, part, thread_key=args.thread_key, env_name="GCHAT_GERENCIAL_WEBHOOK_URL")
+                send_webhook(settings.gchat_gerencial_webhook_url, part, thread_key=args.thread_key, env_name="GCHAT_GERENCIAL_WEBHOOK_URL", payload=build_visual_payload(part, settings.gchat_project_logo_url, "Relatório gerencial — Gestão de Projetos"))
             print(f"{len(messages)} mensagem(ns) do relatório gerencial enviada(s) ao Google Chat.")
     elif args.command == "snapshot":
         path = save_snapshot(report, settings.snapshot_dir)
@@ -58,7 +58,7 @@ def main() -> int:
                 print()
         if args.command == "notify" and args.send:
             def publish(message: str, thread_key: str) -> None:
-                send_webhook(settings.gchat_webhook_url, message, thread_key=args.thread_key or thread_key or DEFAULT_THREAD_KEY)
+                send_webhook(settings.gchat_webhook_url, message, thread_key=args.thread_key or thread_key or DEFAULT_THREAD_KEY, payload=build_visual_payload(message, settings.gchat_project_logo_url, "Alerta — Gestão de Projetos"))
 
             published = 0
             thread_key = args.thread_key or DEFAULT_THREAD_KEY

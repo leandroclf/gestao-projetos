@@ -34,6 +34,7 @@ class Settings:
     team_member_ids: tuple[str, ...]
     snapshot_dir: str
     gchat_alert_state_file: str = "reports/gchat-alert-state.json"
+    gchat_project_logo_url: str = ""
 
     @classmethod
     def from_environment(cls) -> "Settings":
@@ -43,6 +44,7 @@ class Settings:
             notion_version=os.environ.get("NOTION_VERSION", "2025-09-03"),
             gchat_webhook_url=os.environ.get("GCHAT_WEBHOOK_URL", ""),
             gchat_gerencial_webhook_url=os.environ.get("GCHAT_GERENCIAL_WEBHOOK_URL", ""),
+            gchat_project_logo_url=os.environ.get("GCHAT_PROJECT_LOGO_URL", ""),
             tasks_id=os.environ.get("NOTION_TASKS_DATA_SOURCE_ID", "2f89821c-9b76-805f-bee2-000b71d2b012"),
             projects_id=os.environ.get("NOTION_PROJECTS_DATA_SOURCE_ID", "2a19821c-9b76-80c0-90f7-000b1b3a969c"),
             coltec_id=os.environ.get("NOTION_COLTEC_DATA_SOURCE_ID", "732a2bf4-d5d6-4f4d-83b0-918a919ce22d"),

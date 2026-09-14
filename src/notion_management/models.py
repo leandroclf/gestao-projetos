@@ -8,6 +8,8 @@ class Comment:
     text: str = ""
     mentioned_user_ids: tuple[str, ...] = ()
     mentioned_names: tuple[str, ...] = ()
+    author_id: str = ""
+    author_name: str = ""
 
 
 @dataclass(frozen=True)
