@@ -39,7 +39,7 @@ As regras de qualidade de tarefa são deliberadamente restritas aos status ativo
 
 ### Validação do template técnico
 
-Tarefas ativas devem conter as seções `Motivação e Contexto`, `Critério de pronto` e `Anotações`. Projetos ativos devem conter a propriedade `Descrição` e as seções `Motivação e contexto`, `Definição de pronto e de sucesso`, `Aspectos críticos e condições de contorno`, `Outros pontos relevantes` e `Tarefas e desenvolvimento`. O resultado é o achado `template_incomplete`, destinado ao responsável, sem escrita no Notion. Status concluídos são excluídos dessa validação.
+Tarefas ativas devem conter as seções `Motivação e Contexto`, `Critério de pronto` e `Anotações`. Projetos ativos devem conter a propriedade `Descrição` e as seções `Motivação e contexto`, `Definição de pronto e de sucesso`, `Aspectos críticos e condições de contorno`, `Outros pontos relevantes` e `Tarefas e desenvolvimento`. O resultado é o achado `template_incomplete`, destinado ao responsável, sem escrita no Notion. A geração desse alerta está desabilitada na fase 1 e será habilitada na fase 2. Status concluídos são excluídos dessa validação.
 
 Para `Para ser aprovada`, a auditoria lê os comentários e procura evidências de teste/aprovação; o alerta `Aguardando aprovação` é destinado ao aprovador e orienta incluir evidências nos comentários e registrar como feito caso os testes tenham sucesso. Para `Bloqueada`, a auditoria lê as menções nos comentários e direciona a cobrança ao último membro da equipe mencionado, pedindo avanço ou desbloqueio para levar a tarefa a `Feito`; tarefas bloqueadas não geram alerta de prazo vencido. Os alertas carregam o link da tarefa e nunca escrevem no Notion.
 

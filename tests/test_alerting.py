@@ -43,6 +43,13 @@ class AlertingTest(unittest.TestCase):
     def test_empty_or_non_actionable_report_produces_no_alert(self) -> None:
         self.assertEqual([], pending_alerts(AuditReport()))
 
+    def test_template_incomplete_alert_is_disabled_for_phase_two(self) -> None:
+        report = AuditReport(
+            records=[Record(source="tasks", page_id="1", title="Template", owner="Rafael")],
+            findings=[Finding("tasks", "1", "Template", "template_incomplete", "Documentar template.")],
+        )
+        self.assertEqual([], pending_alerts(report))
+
     def test_limits_each_responsible_group_to_three_examples(self) -> None:
         report = self._report()
         report.findings.extend(

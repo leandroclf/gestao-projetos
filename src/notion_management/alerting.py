@@ -21,6 +21,7 @@ ALERT_LABELS = {
 ALERT_ORDER = tuple(ALERT_LABELS)
 MAX_EXAMPLES_PER_OWNER = 3
 DEFAULT_THREAD_KEY = "gestao-integracoes"
+DISABLED_ALERT_RULES = {"template_incomplete"}
 
 INTRO_MESSAGE = """*Evolução do acompanhamento — Equipe de Integrações*
 
@@ -65,7 +66,7 @@ def build_alerts(report: AuditReport) -> list[Alert]:
     records = _record_by_page(report)
     grouped: dict[str, dict[str, list[Finding]]] = {}
     for finding in report.findings:
-        if finding.rule not in ALERT_LABELS:
+        if finding.rule not in ALERT_LABELS or finding.rule in DISABLED_ALERT_RULES:
             continue
         record = records.get(finding.page_id, Record(source="", page_id="", title=""))
         recipient = finding.recipient or record.owner or "Responsável não identificado"
