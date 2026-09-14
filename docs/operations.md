@@ -20,6 +20,12 @@ O webhook publica apenas no espaço em que foi criado. A mensagem deve ser trata
 
 O `notify` publica uma mensagem por tipo de pendência, somente quando houver mudança desde o último envio. As mensagens são agrupadas por responsável, limitadas a três exemplos por responsável e usam a thread fixa `gestao-integracoes` por padrão. O caminho do estado é `GCHAT_ALERT_STATE_FILE`, com padrão `reports/gchat-alert-state.json`. As mensagens iniciais podem ser publicadas com `notify --send --initial` e `notify --send --validation`.
 
+O relatório gerencial é somente leitura e pode ser conferido com `PYTHONPATH=src python3 -m notion_management report`. Ele lista todas as tarefas e projetos em `Em Progresso`, `Bloqueada`, `Para ser aprovada` ou nos equivalentes de projetos `Doing`, `Blocked` e `TBA`, além dos assuntos e ações da COLTEC não concluídos sob responsabilidade do gestor. Cada item inclui responsável, status, prazo quando aplicável, data da última atividade/status, comentário mais recente e links. A seção de menções identifica comentários que mencionam o usuário configurado em `NOTION_MANAGER_ID`. O envio é explícito com `report --send` e usa exclusivamente `GCHAT_GERENCIAL_WEBHOOK_URL`, na thread `gestao-gerencial` por padrão.
+
+O relatório também lista as demandas de clientes ativas da área de Integrações. Na seção de apoio à pauta, uma tarefa ou projeto pode ser sugerido para avaliação na COLTEC quando houver achado de bloqueio, aprovação, prazo vencido, atualização pendente ou menção ao gestor. Registros da COLTEC sob responsabilidade do gestor aparecem como candidatos para avaliar a criação de projeto ou tarefa após uma decisão. Essas são sugestões gerenciais; nenhuma alteração ou criação é feita automaticamente.
+
+Quando o relatório excede o limite seguro do webhook, a CLI envia vários blocos completos na mesma thread. A mensagem exibida no terminal permanece integral para conferência local.
+
 Nas tarefas `Para ser aprovada`, o alerta `Aguardando aprovação` cobra do aprovador a inclusão das evidências dos testes nos comentários e o registro como feito caso os testes tenham sucesso. Nas tarefas `Bloqueada`, a automação lê as menções dos comentários e cobra o último membro da equipe mencionado no contexto do bloqueio para registrar avanço ou desbloqueio. Tarefas bloqueadas não geram alerta de prazo vencido. Cada item inclui seu link direto no Notion; sem menção identificável, a cobrança recai sobre o responsável da tarefa.
 
 O alerta `Template incompleto` está desabilitado na fase 1 para evitar ruído durante a calibração dos critérios. A implementação permanece pronta para a fase 2; quando habilitada, será gerada para tarefas e projetos ativos em escopo com seções ausentes do template técnico ou, no projeto, sem a propriedade `Descrição`. Registros `Feito` não são avaliados nem alertados.
@@ -29,7 +35,8 @@ O alerta `Template incompleto` está desabilitado na fase 1 para evitar ruído d
 O timer de usuário `ops/systemd/gestao-projetos-alertas.timer` define o agendamento do host. A unidade é persistente e executa a última ocorrência perdida quando a máquina retorna. A rotina é:
 
 1. executar `notify --send` nos ciclos definidos; a deduplicação impede repetição quando o conjunto de pendências não mudou;
-3. armazenar `NOTION_TOKEN` e `GCHAT_WEBHOOK_URL` no cofre de segredos do ambiente;
+2. executar `report --send` no mesmo ciclo diário, publicando o acompanhamento completo no espaço gerencial configurado;
+3. armazenar `NOTION_TOKEN`, `GCHAT_WEBHOOK_URL` e `GCHAT_GERENCIAL_WEBHOOK_URL` no cofre de segredos do ambiente;
 4. manter logs sem tokens, webhooks ou conteúdo sensível;
 5. alertar quando a execução falhar, sem transformar falha técnica em mensagem falsa de saúde.
 

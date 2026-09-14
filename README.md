@@ -14,11 +14,12 @@ Automação independente para consolidar tarefas, projetos, ações COLTEC e sol
 
 ```bash
 cp .env.example .env
-# preencha NOTION_TOKEN; opcionalmente preencha GCHAT_WEBHOOK_URL
+# preencha NOTION_TOKEN; opcionalmente preencha os webhooks do Google Chat
 PYTHONPATH=src python3 -m notion_management audit
 PYTHONPATH=src python3 -m notion_management audit --json
 PYTHONPATH=src python3 -m notion_management notify --send
 PYTHONPATH=src python3 -m notion_management snapshot
+PYTHONPATH=src python3 -m notion_management report
 ```
 
 Como o projeto usa layout `src`, execute os comandos a partir da raiz com `PYTHONPATH=src` quando não estiver instalado como pacote:
@@ -39,6 +40,7 @@ Todas as auditorias aplicam escopo antes de calcular indicadores: tarefas e proj
 ```text
 src/notion_management/
   cli.py          # comandos audit e notify
+  management_report.py # relatório gerencial de tarefas, projetos e menções
   config.py       # ambiente e IDs das fontes
   models.py       # entidades e achados normalizados
   notion_api.py   # cliente HTTP somente leitura nesta fase
@@ -73,6 +75,8 @@ Os valores devem ser comparados com as visões dinâmicas do [Painel de Gestão 
 ## Operação recomendada
 
 Para acompanhar tendência, execute `snapshot` uma vez por período em um ambiente autorizado. O comando é local e somente leitura no Notion. Para publicar um resumo manual no espaço configurado, use `notify --send`; para agrupar alertas em uma conversa do Google Chat, informe `--thread-key <chave-estavel>`.
+
+Para gerar o relatório gerencial completo, execute `PYTHONPATH=src python3 -m notion_management report`. O relatório inclui tarefas e projetos ativos, assuntos/ações da COLTEC sob responsabilidade do gestor, status, prazo quando aplicável, data da última atividade/status, comentário mais recente e uma seção com comentários que mencionaram o gestor configurado em `NOTION_MANAGER_ID`. Para enviar ao espaço gerencial, use `report --send`; o destino é `GCHAT_GERENCIAL_WEBHOOK_URL` e a thread padrão é `gestao-gerencial`.
 
 O agendamento do host está definido em `ops/systemd/gestao-projetos-alertas.timer`, com armazenamento seguro das variáveis do `.env`, logs no journal, timeout, retry e controle de duplicidade. CI e outros schedulers não são ativados por este repositório.
 

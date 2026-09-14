@@ -47,7 +47,23 @@ O campo `last_edited_time` é usado como proxy da última atualização. Ele nã
 
 ### Configuração fora do código
 
-IDs de bases, token e webhook vêm de variáveis de ambiente. O `.env.example` documenta os nomes. A aplicação lê um `.env` local com um parser próprio de pares simples, sem executá-lo como shell; variáveis já presentes no ambiente têm precedência.
+IDs de bases, token e webhooks vêm de variáveis de ambiente. O `.env.example` documenta os nomes. A aplicação lê um `.env` local com um parser próprio de pares simples, sem executá-lo como shell; variáveis já presentes no ambiente têm precedência. `GCHAT_WEBHOOK_URL` é o destino operacional dos alertas; `GCHAT_GERENCIAL_WEBHOOK_URL` é o destino exclusivo do relatório gerencial.
+
+### Relatório gerencial
+
+O comando `report` reutiliza a consulta, normalização e regra de escopo existentes, mas apresenta o resultado em seções gerenciais independentes:
+
+- tarefas ativas em `Em Progresso`, `Bloqueada` e `Para ser aprovada`;
+- projetos ativos em `Doing`, `Blocked` e `TBA`, além dos equivalentes em português;
+- assuntos e ações da COLTEC não concluídos sob responsabilidade do gestor configurado em `NOTION_MANAGER_ID`;
+- demandas de clientes nos status ativos da base de solicitações, dentro do escopo de Integrações;
+- apoio à pauta e às decisões.
+
+Cada atividade inclui responsável, status, prazo quando aplicável, data da última atividade/status, comentário mais recente e link direto. A data de atividade usa a propriedade configurada de última atualização e, quando ausente, o `last_edited_time` da página. O comentário mais recente é obtido pela API de discussões do Notion.
+
+A seção de menções identifica menções estruturadas ao ID de `NOTION_MANAGER_ID` nos comentários. As sugestões de pauta são candidatas geradas a partir de achados de bloqueio, aprovação, prazo, atualização ou menção ao gestor. Os registros da COLTEC sob responsabilidade do gestor são apresentados como candidatos a desdobramento em projeto/tarefa após confirmação da decisão. Essas sugestões não escrevem no Notion e não criam demandas automaticamente.
+
+O webhook gerencial recebe o relatório em uma thread própria (`gestao-gerencial`). Quando o conteúdo ultrapassa o limite seguro por mensagem, o envio é dividido em blocos completos na mesma thread, preservando todas as seções e registros.
 
 ## Fluxo
 
