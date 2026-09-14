@@ -69,6 +69,11 @@ def _record_lines(record: Record, include_due_date: bool = False, prefix: str = 
     return lines
 
 
+def _reference_lines(record: Record, label: str = "Referência") -> list[str]:
+    """Renderiza uma ocorrência derivada sem repetir o acompanhamento completo."""
+    return [f"- {label}: {record.title} — {record.page_url}"]
+
+
 def render_management_report(report: AuditReport, manager_id: str) -> str:
     records = [record for record in report.records if _active(record) and record.source in {"tasks", "projects", "coltec", "requests"}]
     tasks = [record for record in records if record.source == "tasks"]
@@ -129,14 +134,14 @@ def render_management_report(report: AuditReport, manager_id: str) -> str:
     lines.append("*Sugestões de assuntos para levar à pauta da COLTEC*\n")
     if pauta_candidates:
         for record, reasons in pauta_candidates:
-            lines.extend(_record_lines(record, include_due_date=record.source == "tasks", prefix="Avaliar pauta: ") + [f"  Motivo: {'; '.join(reasons)}", ""])
+            lines.extend(_reference_lines(record, label="Avaliar pauta") + [f"  Motivo: {'; '.join(reasons)}", ""])
     else:
         lines.append("Nenhuma sugestão de assunto para a pauta foi identificada.\n")
 
     lines.append("*Sugestões de demandas para a equipe após decisões da COLTEC*\n")
     if coltec:
         for record in coltec:
-            lines.extend(_record_lines(record, include_due_date=True, prefix="Avaliar criação de projeto/tarefa: ") + [
+            lines.extend(_reference_lines(record, label="Avaliar criação de projeto/tarefa") + [
                 "  Motivo: assunto ou ação da COLTEC sob responsabilidade do gestor; confirmar a decisão e o desdobramento necessário.",
                 "",
             ])
@@ -149,8 +154,6 @@ def render_management_report(report: AuditReport, manager_id: str) -> str:
             latest_mention = max(comments, key=lambda comment: comment.created_at)
             lines.extend([
                 f"- {record.title} — {record.page_url}",
-                f"  Responsável: {record.owner or 'Responsável não identificado'}",
-                f"  Status atual: {record.status}",
                 f"  Menção mais recente ({_date(latest_mention.created_at)} — Autor: {_comment_author(latest_mention)}): {_comment_text(latest_mention)}",
                 "",
             ])

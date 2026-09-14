@@ -28,7 +28,9 @@ SEMANTIC_COLORS = {
     "coltec": COLORS["brown_dark"],
     "agenda": COLORS["gold_dark"],
     "mention": COLORS["brown_dark"],
-    "management_report": COLORS["gold"],
+    # O Google Chat usa fundo claro no card; texto institucional deve manter
+    # contraste, deixando o dourado apenas para destaques pontuais.
+    "management_report": COLORS["graphite"],
     "completed": "#137333",
 }
 
