@@ -1,6 +1,6 @@
 import hashlib
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Callable
 
@@ -10,6 +10,8 @@ from .models import AuditReport, Finding, Record
 ALERT_LABELS = {
     "overdue": "Prazo vencido",
     "stale": "Atualização pendente",
+    "approval_update_missing": "Aprovação sem evidências",
+    "blocked_follow_up": "Ação para desbloqueio",
     "due_date_missing": "Tarefa sem prazo",
     "approver_missing": "Aguardando aprovador",
     "owner_missing": "Tarefa sem responsável",
@@ -50,7 +52,9 @@ def _fingerprint(findings: list[Finding]) -> str:
 def _format_group(owner: str, findings: list[Finding]) -> str:
     lines = [f"Responsável: {owner} ({len(findings)} pendência(s))"]
     for finding in findings[:MAX_EXAMPLES_PER_OWNER]:
-        lines.append(f"- {finding.title}")
+        link = f" — {finding.url}" if finding.url else ""
+        lines.append(f"- {finding.title}{link}")
+        lines.append(f"  Ação: {finding.message}")
     if len(findings) > MAX_EXAMPLES_PER_OWNER:
         lines.append(f"- ... e mais {len(findings) - MAX_EXAMPLES_PER_OWNER} pendência(s) deste responsável")
     return "\n".join(lines)
@@ -62,8 +66,10 @@ def build_alerts(report: AuditReport) -> list[Alert]:
     for finding in report.findings:
         if finding.rule not in ALERT_LABELS:
             continue
-        owner = records.get(finding.page_id, Record(source="", page_id="", title="")).owner or "Responsável não identificado"
-        grouped.setdefault(finding.rule, {}).setdefault(owner, []).append(finding)
+        record = records.get(finding.page_id, Record(source="", page_id="", title=""))
+        recipient = finding.recipient or record.owner or "Responsável não identificado"
+        enriched = replace(finding, recipient=recipient, url=finding.url or record.page_url)
+        grouped.setdefault(finding.rule, {}).setdefault(recipient, []).append(enriched)
 
     alerts: list[Alert] = []
     for rule in ALERT_ORDER:

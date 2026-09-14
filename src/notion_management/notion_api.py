@@ -32,10 +32,23 @@ class NotionClient:
             if not cursor:
                 return rows
 
-    def _request(self, method: str, path: str, payload: dict) -> dict:
+    def list_comments(self, block_id: str) -> list[dict]:
+        comments: list[dict] = []
+        cursor: str | None = None
+        while True:
+            query = f"?block_id={block_id}"
+            if cursor:
+                query += f"&start_cursor={cursor}"
+            response = self._request("GET", f"/comments{query}", None)
+            comments.extend(response.get("results", []))
+            if not response.get("has_more") or not response.get("next_cursor"):
+                return comments
+            cursor = response["next_cursor"]
+
+    def _request(self, method: str, path: str, payload: dict | None) -> dict:
         request = Request(
             f"{self.base_url}{path}",
-            data=json.dumps(payload).encode("utf-8"),
+            data=json.dumps(payload).encode("utf-8") if payload is not None else None,
             headers=self.headers,
             method=method,
         )

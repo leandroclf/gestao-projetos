@@ -1,7 +1,7 @@
 import unittest
 from datetime import date, timedelta
 
-from notion_management.models import Record
+from notion_management.models import Comment, Record
 from notion_management.quality import audit
 
 
@@ -43,6 +43,21 @@ class QualityTest(unittest.TestCase):
             Record(source="tasks", page_id="1", title="Atualizada na sexta", status="Em Progresso", owner="Pessoa", due_date=date(2026, 9, 14), updated_at=date(2026, 9, 11)),
         ], today=date(2026, 9, 13))
         self.assertNotIn("stale", {finding.rule for finding in report.findings})
+
+    def test_approval_update_is_directed_to_approver_and_requires_evidence(self) -> None:
+        report = audit([Record(source="tasks", page_id="1", title="Aprovação", status="Para ser aprovada", owner="Rafael", approver_names=("Leandro",), due_date=date.today())], today=date(2026, 9, 13))
+        finding = next(finding for finding in report.findings if finding.rule == "approval_update_missing")
+        self.assertEqual("Leandro", finding.recipient)
+
+    def test_blocked_update_is_directed_to_last_team_member_mentioned(self) -> None:
+        report = audit([Record(
+            source="tasks", page_id="1", title="Bloqueada", status="Bloqueada", owner="Rafael", due_date=date.today(),
+            updated_at=date(2026, 9, 12),
+            comments=(Comment(date(2026, 9, 7), "Cesar, consegue verificar?", ("cesar-id",), ("Cesar",)),),
+            comment_recipient="Cesar",
+        )], today=date(2026, 9, 13))
+        finding = next(finding for finding in report.findings if finding.rule == "blocked_follow_up")
+        self.assertEqual("Cesar", finding.recipient)
 
 
     def test_ignores_completed_records(self) -> None:

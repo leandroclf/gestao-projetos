@@ -28,6 +28,15 @@ def _business_days_since(start: date, end: date) -> int:
     return elapsed
 
 
+def _latest_comment_date(record: Record) -> date | None:
+    return max((comment.created_at for comment in record.comments), default=None)
+
+
+def _has_approval_evidence(record: Record) -> bool:
+    terms = ("teste", "evidência", "evidencia", "aprov", "validado", "e2e")
+    return any(any(term in comment.text.lower() for term in terms) for comment in record.comments)
+
+
 def audit(records: list[Record], today: date | None = None) -> AuditReport:
     today = today or date.today()
     findings: list[Finding] = []
@@ -46,10 +55,26 @@ def audit(records: list[Record], today: date | None = None) -> AuditReport:
             findings.append(Finding(record.source, record.page_id, record.title, "overdue", "Prazo vencido para tarefa ainda não concluída."))
         if record.status == "Feito":
             continue
-        if not record.updated_at:
-            findings.append(Finding(record.source, record.page_id, record.title, "stale", "Tarefa sem data de atualização do responsável."))
+        recipient = record.owner
+        rule = "stale"
+        message = "Tarefa sem data de atualização nos comentários."
+        update_date = record.updated_at
+        if record.status == "Para ser aprovada":
+            recipient = ", ".join(record.approver_names) or "Aprovador não identificado"
+            rule = "approval_update_missing"
+            message = "Aprovador deve solicitar atualização nos comentários com evidências dos testes de aprovação."
+            update_date = _latest_comment_date(record)
+            if update_date and _has_approval_evidence(record):
+                continue
+        elif record.status == "Bloqueada" and record.comment_recipient:
+            recipient = record.comment_recipient
+            rule = "blocked_follow_up"
+            message = "Ação necessária: revisar o comentário mais recente do bloqueio, registrar o avanço ou desbloqueio e conduzir a tarefa até Feito."
+            update_date = _latest_comment_date(record)
+        if not update_date:
+            findings.append(Finding(record.source, record.page_id, record.title, rule, message, recipient=recipient, url=record.page_url))
             continue
-        business_days = _business_days_since(record.updated_at, today)
+        business_days = _business_days_since(update_date, today)
         if business_days > 2:
-            findings.append(Finding(record.source, record.page_id, record.title, "stale", "Tarefa sem atualização do responsável há mais de dois dias úteis."))
+            findings.append(Finding(record.source, record.page_id, record.title, rule, message if rule != "stale" else "Tarefa sem atualização do responsável há mais de dois dias úteis.", recipient=recipient, url=record.page_url))
     return AuditReport(records=records, findings=findings)

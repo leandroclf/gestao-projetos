@@ -11,7 +11,7 @@ from notion_management.models import AuditReport, Finding, Record
 class AlertingTest(unittest.TestCase):
     def _report(self) -> AuditReport:
         records = [
-            Record(source="tasks", page_id="1", title="Tarefa vencida", status="Em Progresso", owner="Rafael", due_date=date.today() - timedelta(days=1)),
+            Record(source="tasks", page_id="1", title="Tarefa vencida", status="Em Progresso", owner="Rafael", due_date=date.today() - timedelta(days=1), page_url="https://www.notion.so/1"),
             Record(source="tasks", page_id="2", title="Tarefa sem atualização", status="Bloqueada", owner="Cesar", due_date=date.today()),
         ]
         findings = [
@@ -25,6 +25,7 @@ class AlertingTest(unittest.TestCase):
         self.assertEqual({"overdue", "stale"}, {alert.rule for alert in alerts})
         self.assertIn("Rafael", next(alert.message for alert in alerts if alert.rule == "overdue"))
         self.assertIn("Tarefa vencida", next(alert.message for alert in alerts if alert.rule == "overdue"))
+        self.assertIn("https://www.notion.so/1", next(alert.message for alert in alerts if alert.rule == "overdue"))
 
     def test_only_changed_alerts_are_sent_and_force_resends(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

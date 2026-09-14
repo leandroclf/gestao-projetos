@@ -36,7 +36,7 @@ src/notion_management/
   cli.py           comandos audit e notify
   config.py        ambiente, parser seguro do .env e IDs das fontes
   models.py        Record, Finding e AuditReport
-  notion_api.py    cliente HTTP do Notion e paginação de consultas
+  notion_api.py    cliente HTTP do Notion, paginação e leitura de comentários
   quality.py       regras de qualidade e status ativos
   service.py       normalização, consulta, filtragem e relatório
   scope.py         regra única de recorte da área de Integrações
@@ -83,6 +83,14 @@ Aplicar somente aos status `Em Progresso`, `Bloqueada`, `Para ser aprovada` e `F
 - tarefas `Feito` não precisam continuar recebendo atualização, mas continuam exigindo dono e prazo.
 
 As atualizações devem ser registradas nos comentários da tarefa, contendo evolução, impedimento, evidência ou próximo passo. O auditor usa `last_edited_time` como aproximação da última atualização. Não afirmar que a atualização foi feita pelo responsável ou que ocorreu em comentário sem consultar o histórico de discussões do Notion.
+
+### Regras específicas de alertas
+
+- tarefas `Para ser aprovada` devem ter comentário com evidências dos testes de aprovação; a cobrança é direcionada ao aprovador, não ao responsável da execução;
+- tarefas `Bloqueada` consultam os comentários da tarefa; a cobrança é direcionada ao último membro da equipe mencionado no contexto do bloqueio, solicitando avanço ou desbloqueio até a conclusão;
+- os alertas incluem o link direto da tarefa;
+- se não houver membro identificável no comentário do bloqueio, a cobrança permanece com o responsável da tarefa;
+- a leitura de comentários é somente leitura e não altera o histórico oficial.
 
 ## Configuração
 

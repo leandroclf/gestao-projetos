@@ -1,8 +1,9 @@
+from dataclasses import replace
 from datetime import date, datetime
 from typing import Any
 
 from .config import Settings
-from .models import AuditReport, Record
+from .models import AuditReport, Comment, Record
 from .notion_api import NotionClient
 from .quality import audit
 from .scope import in_scope
@@ -32,6 +33,44 @@ def _person_id(properties: dict[str, Any], name: str) -> str:
 
 def _people_count(properties: dict[str, Any], name: str) -> int:
     return len(properties.get(name, {}).get("people", []))
+
+
+def _people_names(properties: dict[str, Any], name: str) -> tuple[str, ...]:
+    return tuple(person.get("name") or person.get("id", "") for person in properties.get(name, {}).get("people", []))
+
+
+def _comments(raw_comments: list[dict[str, Any]]) -> tuple[Comment, ...]:
+    result: list[Comment] = []
+    for raw in raw_comments:
+        created = raw.get("created_time")
+        if not created:
+            continue
+        text_parts: list[str] = []
+        user_ids: list[str] = []
+        names: list[str] = []
+        for item in raw.get("rich_text", []):
+            text_parts.append(item.get("plain_text", ""))
+            mention = item.get("mention", {})
+            user = mention.get("user", {}) if mention.get("type") == "user" else {}
+            if user.get("id"):
+                user_ids.append(user["id"])
+                names.append(user.get("name") or user["id"])
+        result.append(Comment(
+            created_at=datetime.fromisoformat(created.replace("Z", "+00:00")).date(),
+            text="".join(text_parts).strip(),
+            mentioned_user_ids=tuple(user_ids),
+            mentioned_names=tuple(names),
+        ))
+    return tuple(sorted(result, key=lambda comment: comment.created_at))
+
+
+def _last_team_mention(comments: tuple[Comment, ...], member_ids: tuple[str, ...]) -> str:
+    members = {item.replace("-", "").lower() for item in member_ids}
+    for comment in reversed(comments):
+        for user_id, name in reversed(tuple(zip(comment.mentioned_user_ids, comment.mentioned_names))):
+            if user_id.replace("-", "").lower() in members:
+                return name
+    return ""
 
 
 def _date(properties: dict[str, Any], name: str) -> date | None:
@@ -78,6 +117,8 @@ def _normalize(source: str, page: dict[str, Any], status_name: str, owner_name: 
         area_ids=_relation_ids(props, "Área"),
         request_team=_option(props, "Time Responsável"),
         kind=_option(props, "Tipo"),
+        approver_names=_people_names(props, "Aprovadora"),
+        page_url=f"https://www.notion.so/{page.get('id', '').replace('-', '')}" if page.get("id") else "",
     )
 
 
@@ -94,6 +135,9 @@ def run_audit(settings: Settings, today: date | None = None) -> AuditReport:
     ]:
         for row in client.query_data_source(data_source_id):
             record = _normalize(source, row, status, owner, due, project)
+            if source == "tasks" and record.status in {"Bloqueada", "Para ser aprovada"}:
+                comments = _comments(client.list_comments(record.page_id))
+                record = replace(record, comments=comments, comment_recipient=_last_team_mention(comments, settings.team_member_ids + (settings.manager_id,)))
             if in_scope(record, settings):
                 records.append(record)
             else:

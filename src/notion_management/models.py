@@ -3,6 +3,14 @@ from datetime import date
 
 
 @dataclass(frozen=True)
+class Comment:
+    created_at: date
+    text: str = ""
+    mentioned_user_ids: tuple[str, ...] = ()
+    mentioned_names: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class Record:
     source: str
     page_id: str
@@ -20,6 +28,10 @@ class Record:
     area_ids: tuple[str, ...] = ()
     request_team: str = ""
     kind: str = ""
+    comments: tuple[Comment, ...] = ()
+    approver_names: tuple[str, ...] = ()
+    page_url: str = ""
+    comment_recipient: str = ""
 
 
 @dataclass(frozen=True)
@@ -29,6 +41,8 @@ class Finding:
     title: str
     rule: str
     message: str
+    recipient: str = ""
+    url: str = ""
 
 
 @dataclass
