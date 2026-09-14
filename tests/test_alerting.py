@@ -42,8 +42,12 @@ class AlertingTest(unittest.TestCase):
             self.assertEqual(2, len(sent))
             send_pending_alerts(self._report(), state_path, publish, force=True)
             self.assertEqual(4, len(sent))
-            self.assertEqual(2, len(json.loads(state_path.read_text()) ["alerts"]))
+            self.assertEqual(2, len(json.loads(state_path.read_text())["alerts"]))
 
+    def test_alert_exposes_visual_category_from_quality_rule(self) -> None:
+        alert = next(alert for alert in pending_alerts(self._report()) if alert.rule == "overdue")
+
+        self.assertEqual("overdue", alert.category)
     def test_empty_or_non_actionable_report_produces_no_alert(self) -> None:
         self.assertEqual([], pending_alerts(AuditReport()))
 

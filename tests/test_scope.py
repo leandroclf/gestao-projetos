@@ -113,13 +113,23 @@ class ScopeTest(unittest.TestCase):
         self.assertIn("threadKey=gestao-diaria", request.full_url)
 
     def test_visual_payload_contains_branding_and_notion_button(self) -> None:
-        payload = build_visual_payload("*Prazo vencido*\n\n- Tarefa — https://www.notion.so/page-1", "https://example.com/logo.png")
+        payload = build_visual_payload("*Prazo vencido*\n\n- Tarefa — https://www.notion.so/page-1", "https://example.com/logo.png", category="overdue")
 
         card = payload["cardsV2"][0]["card"]
         self.assertEqual("Gestão de Projetos", card["header"]["title"])
         self.assertEqual("https://example.com/logo.png", card["header"]["imageUrl"])
         self.assertIn("Abrir no Notion", str(payload))
         self.assertIn('#B3261E', str(payload))
+
+    def test_visual_payload_uses_explicit_semantic_category(self) -> None:
+        payload = build_visual_payload("*Aguardando aprovação*", category="approval")
+
+        self.assertIn('#D98E06', str(payload))
+
+    def test_visual_payload_unknown_category_is_neutral(self) -> None:
+        payload = build_visual_payload("Informação", category="unknown")
+
+        self.assertIn('#1A1A1C', str(payload))
 
 
 if __name__ == "__main__":
