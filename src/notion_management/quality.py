@@ -51,7 +51,7 @@ def audit(records: list[Record], today: date | None = None) -> AuditReport:
             findings.append(Finding(record.source, record.page_id, record.title, "due_date_missing", "Tarefa em status controlado sem prazo."))
         if record.status == "Para ser aprovada" and record.approver_count < 1:
             findings.append(Finding(record.source, record.page_id, record.title, "approver_missing", "Tarefa aguardando aprovação sem pelo menos um aprovador."))
-        if record.due_date and record.due_date < today and record.status != "Feito":
+        if record.due_date and record.due_date < today and record.status not in {"Feito", "Bloqueada"}:
             findings.append(Finding(record.source, record.page_id, record.title, "overdue", "Prazo vencido para tarefa ainda não concluída."))
         if record.status == "Feito":
             continue
@@ -62,7 +62,7 @@ def audit(records: list[Record], today: date | None = None) -> AuditReport:
         if record.status == "Para ser aprovada":
             recipient = ", ".join(record.approver_names) or "Aprovador não identificado"
             rule = "approval_update_missing"
-            message = "Aprovador deve solicitar atualização nos comentários com evidências dos testes de aprovação."
+            message = "Aprovador deverá incluir evidências dos testes nos comentários e registrar como feito caso sucesso nos testes."
             update_date = _latest_comment_date(record)
             if update_date and _has_approval_evidence(record):
                 continue

@@ -20,7 +20,7 @@ O webhook publica apenas no espaço em que foi criado. A mensagem deve ser trata
 
 O `notify` publica uma mensagem por tipo de pendência, somente quando houver mudança desde o último envio. As mensagens são agrupadas por responsável, limitadas a três exemplos por responsável e usam a thread fixa `gestao-integracoes` por padrão. O caminho do estado é `GCHAT_ALERT_STATE_FILE`, com padrão `reports/gchat-alert-state.json`. As mensagens iniciais podem ser publicadas com `notify --send --initial` e `notify --send --validation`.
 
-Nas tarefas `Para ser aprovada`, o alerta cobra do aprovador um comentário com as evidências dos testes de aprovação. Nas tarefas `Bloqueada`, a automação lê as menções dos comentários e cobra o último membro da equipe mencionado no contexto do bloqueio para registrar avanço ou desbloqueio. Cada item inclui seu link direto no Notion; sem menção identificável, a cobrança recai sobre o responsável da tarefa.
+Nas tarefas `Para ser aprovada`, o alerta `Aguardando aprovação` cobra do aprovador a inclusão das evidências dos testes nos comentários e o registro como feito caso os testes tenham sucesso. Nas tarefas `Bloqueada`, a automação lê as menções dos comentários e cobra o último membro da equipe mencionado no contexto do bloqueio para registrar avanço ou desbloqueio. Tarefas bloqueadas não geram alerta de prazo vencido. Cada item inclui seu link direto no Notion; sem menção identificável, a cobrança recai sobre o responsável da tarefa.
 
 ## Agendamento futuro
 

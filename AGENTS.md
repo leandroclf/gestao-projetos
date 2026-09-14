@@ -87,6 +87,8 @@ As atualizações devem ser registradas nos comentários da tarefa, contendo evo
 ### Regras específicas de alertas
 
 - tarefas `Para ser aprovada` devem ter comentário com evidências dos testes de aprovação; a cobrança é direcionada ao aprovador, não ao responsável da execução;
+- o alerta `Aguardando aprovação` deve orientar: incluir evidências dos testes nos comentários e registrar como feito caso sucesso nos testes;
+- tarefas `Bloqueada` não geram alerta de prazo vencido;
 - tarefas `Bloqueada` consultam os comentários da tarefa; a cobrança é direcionada ao último membro da equipe mencionado no contexto do bloqueio, solicitando avanço ou desbloqueio até a conclusão;
 - os alertas incluem o link direto da tarefa;
 - se não houver membro identificável no comentário do bloqueio, a cobrança permanece com o responsável da tarefa;

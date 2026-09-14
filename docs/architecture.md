@@ -37,7 +37,7 @@ As regras de qualidade de tarefa são deliberadamente restritas aos status `Em P
 | Projeto | Relação `Projeto` é recomendada, mas não obrigatória. |
 | Conclusão | Tarefa `Feito` não é cobrada por cadência de atualização. |
 
-Para `Para ser aprovada`, a auditoria lê os comentários e procura evidências de teste/aprovação; o alerta é destinado ao aprovador. Para `Bloqueada`, a auditoria lê as menções nos comentários e direciona a cobrança ao último membro da equipe mencionado, pedindo avanço ou desbloqueio para levar a tarefa a `Feito`. Os alertas carregam o link da tarefa e nunca escrevem no Notion.
+Para `Para ser aprovada`, a auditoria lê os comentários e procura evidências de teste/aprovação; o alerta `Aguardando aprovação` é destinado ao aprovador e orienta incluir evidências nos comentários e registrar como feito caso os testes tenham sucesso. Para `Bloqueada`, a auditoria lê as menções nos comentários e direciona a cobrança ao último membro da equipe mencionado, pedindo avanço ou desbloqueio para levar a tarefa a `Feito`; tarefas bloqueadas não geram alerta de prazo vencido. Os alertas carregam o link da tarefa e nunca escrevem no Notion.
 
 O campo `last_edited_time` é usado como proxy da última atualização. Ele não comprova, sozinho, que a edição foi feita pelo responsável nem que foi um comentário. A validação completa da autoria e do conteúdo da atualização depende da leitura do histórico de comentários do Notion e permanece como evolução posterior.
 
