@@ -22,6 +22,8 @@ O `notify` publica uma mensagem por tipo de pendência, somente quando houver mu
 
 Nas tarefas `Para ser aprovada`, o alerta `Aguardando aprovação` cobra do aprovador a inclusão das evidências dos testes nos comentários e o registro como feito caso os testes tenham sucesso. Nas tarefas `Bloqueada`, a automação lê as menções dos comentários e cobra o último membro da equipe mencionado no contexto do bloqueio para registrar avanço ou desbloqueio. Tarefas bloqueadas não geram alerta de prazo vencido. Cada item inclui seu link direto no Notion; sem menção identificável, a cobrança recai sobre o responsável da tarefa.
 
+O alerta `Template incompleto` é gerado para tarefas e projetos ativos em escopo quando faltam seções do template técnico ou, no projeto, a propriedade `Descrição`. A mensagem lista os itens ausentes e cobra o responsável pela documentação correta. Registros `Feito` não são avaliados nem alertados.
+
 ## Agendamento futuro
 
 O projeto está pronto para ser chamado por cron, CI, Cloud Run Job ou outro executor autorizado, mas nenhum agendamento é ativado por este repositório. A rotina recomendada é:

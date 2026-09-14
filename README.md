@@ -66,6 +66,8 @@ O relatório calcula volume por fonte, status, responsável, itens sem prazo, ap
 - tarefa sem projeto é permitida e não gera achado;
 - tarefa `Feito` sai do mapa de alertas e não gera nenhum achado, pois já foi concluída.
 
+Tarefas e projetos ativos também são verificados contra o template técnico. Tarefas devem conter as seções `Motivação e Contexto`, `Critério de pronto` e `Anotações`. Projetos devem conter a propriedade `Descrição` e as seções `Motivação e contexto`, `Definição de pronto e de sucesso`, `Aspectos críticos e condições de contorno`, `Outros pontos relevantes` e `Tarefas e desenvolvimento`. O alerta `Template incompleto` é direcionado ao responsável e lista o que falta.
+
 Os valores devem ser comparados com as visões dinâmicas do [Painel de Gestão — Equipe de Integrações](https://app.notion.com/p/3d99821c9b7681538173ddf48d2fef79).
 
 ## Operação recomendada

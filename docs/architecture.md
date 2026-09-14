@@ -37,6 +37,10 @@ As regras de qualidade de tarefa são deliberadamente restritas aos status ativo
 | Projeto | Relação `Projeto` é recomendada, mas não obrigatória. |
 | Conclusão | Tarefa `Feito` sai do mapa de alertas e não gera achados. |
 
+### Validação do template técnico
+
+Tarefas ativas devem conter as seções `Motivação e Contexto`, `Critério de pronto` e `Anotações`. Projetos ativos devem conter a propriedade `Descrição` e as seções `Motivação e contexto`, `Definição de pronto e de sucesso`, `Aspectos críticos e condições de contorno`, `Outros pontos relevantes` e `Tarefas e desenvolvimento`. O resultado é o achado `template_incomplete`, destinado ao responsável, sem escrita no Notion. Status concluídos são excluídos dessa validação.
+
 Para `Para ser aprovada`, a auditoria lê os comentários e procura evidências de teste/aprovação; o alerta `Aguardando aprovação` é destinado ao aprovador e orienta incluir evidências nos comentários e registrar como feito caso os testes tenham sucesso. Para `Bloqueada`, a auditoria lê as menções nos comentários e direciona a cobrança ao último membro da equipe mencionado, pedindo avanço ou desbloqueio para levar a tarefa a `Feito`; tarefas bloqueadas não geram alerta de prazo vencido. Os alertas carregam o link da tarefa e nunca escrevem no Notion.
 
 O campo `last_edited_time` é usado como proxy da última atualização. Ele não comprova, sozinho, que a edição foi feita pelo responsável nem que foi um comentário. A validação completa da autoria e do conteúdo da atualização depende da leitura do histórico de comentários do Notion e permanece como evolução posterior.
