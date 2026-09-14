@@ -8,7 +8,9 @@ from .service import (
 
 
 MANAGEMENT_THREAD_KEY = "gestao-gerencial"
-MAX_GCHAT_MESSAGE_CHARS = 20000
+# O card repete o fallback com HTML e botões; o limite conservador evita que o
+# tamanho após o processamento de markup ultrapasse o limite do webhook.
+MAX_GCHAT_MESSAGE_CHARS = 8000
 
 
 def _active(record: Record) -> bool:

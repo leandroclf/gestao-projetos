@@ -26,7 +26,7 @@ O relatório também lista as demandas de clientes ativas da área de Integraç�
 
 Regra transversal de identificação: toda tarefa em `Para ser aprovada` deve exibir o(s) aprovador(es) na mensagem de alerta e no relatório gerencial. Todo comentário exibido deve informar o autor registrado pelo Notion. Se o retorno da API não trouxer `created_by`, informar `Autor não identificado`; não inferir autoria pelo texto do comentário.
 
-As mensagens operacionais e gerenciais são enviadas com cards `cardsV2`, cabeçalho de Gestão de Projetos e botões de abertura dos links. Para exibir o logo do projeto, configure `GCHAT_PROJECT_LOGO_URL` com uma URL HTTPS de imagem PNG ou JPEG. O envio divide relatórios grandes em blocos de até 20.000 caracteres para manter o payload dentro do limite seguro do Google Chat.
+As mensagens operacionais e gerenciais são enviadas com cards `cardsV2`, cabeçalho de Gestão de Projetos e botões de abertura dos links. Para exibir o logo do projeto, configure `GCHAT_PROJECT_LOGO_URL` com uma URL HTTPS de imagem PNG ou JPEG. O envio divide relatórios grandes em blocos de até 8.000 caracteres para manter o payload, incluindo cards e markup, dentro do limite seguro do Google Chat.
 
 Quando o relatório excede o limite seguro do webhook, a CLI envia vários blocos completos na mesma thread. A mensagem exibida no terminal permanece integral para conferência local.
 

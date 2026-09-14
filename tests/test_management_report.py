@@ -66,6 +66,11 @@ class ManagementReportTest(unittest.TestCase):
         self.assertEqual(message, "\n\n".join(chunks))
         self.assertTrue(all(len(chunk) <= 20 for chunk in chunks))
 
+    def test_default_google_chat_limit_is_conservative_for_cards(self) -> None:
+        chunks = split_management_report("A" * 4000 + "\n\n" + "B" * 4000 + "\n\nC")
+
+        self.assertGreater(len(chunks), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -14,7 +14,7 @@ PYTHONPATH=src python3 -m notion_management report
 PYTHONPATH=src python3 -m notion_management report --send
 ```
 
-O envio usa `GCHAT_GERENCIAL_WEBHOOK_URL` e a thread `gestao-gerencial` por padrão. O webhook operacional (`GCHAT_WEBHOOK_URL`) não é usado pelo relatório. A publicação é dividida em mensagens sequenciais quando necessário para preservar o relatório completo. As mensagens usam cards `cardsV2` com o nome do projeto, logo opcional, formatação visual por categoria e botões para abrir os links; o campo `text` permanece como fallback.
+O envio usa `GCHAT_GERENCIAL_WEBHOOK_URL` e a thread `gestao-gerencial` por padrão. O webhook operacional (`GCHAT_WEBHOOK_URL`) não é usado pelo relatório. A publicação é dividida em mensagens sequenciais quando necessário para preservar o relatório completo. Como o card repete o texto com markup e botões, cada bloco usa um limite conservador de 8.000 caracteres para evitar rejeição por tamanho após o processamento do Google Chat. As mensagens usam cards `cardsV2` com o nome do projeto, logo opcional, formatação visual por categoria e botões para abrir os links; o campo `text` permanece como fallback.
 
 Configure `GCHAT_PROJECT_LOGO_URL` com uma URL HTTPS de uma imagem PNG ou JPEG quadrada para exibir a identidade visual no cabeçalho do card. O nome e o avatar do remetente principal continuam sendo configurados no cadastro do webhook dentro do espaço do Google Chat.
 
