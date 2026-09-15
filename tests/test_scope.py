@@ -120,11 +120,13 @@ class ScopeTest(unittest.TestCase):
         self.assertEqual("https://example.com/logo.png", card["header"]["imageUrl"])
         self.assertIn("Abrir no Notion", str(payload))
         self.assertIn('#B3261E', str(payload))
+        self.assertNotIn("text", payload)
+        self.assertIn('#1A1A1C', str(payload))
 
     def test_visual_payload_uses_explicit_semantic_category(self) -> None:
         payload = build_visual_payload("*Aguardando aprovação*", category="approval")
 
-        self.assertIn('#D98E06', str(payload))
+        self.assertIn('#7A4B00', str(payload))
 
     def test_visual_payload_unknown_category_is_neutral(self) -> None:
         payload = build_visual_payload("Informação", category="unknown")

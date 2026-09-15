@@ -4,16 +4,22 @@ import re
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 
-from .brand import PROJECT_NAME, semantic_color
+from .brand import COLORS, PROJECT_NAME, semantic_color
 
 
-def _card_html(text: str, category: str = "general") -> str:
+def _inline_html(text: str) -> str:
     value = html.escape(text)
     value = re.sub(r"\[([^\]]+)\]\((https?://[^)]+)\)", r'<a href="\2">\1</a>', value)
     value = re.sub(r"(?<![\"=])(https?://[^\s<]+)", r'<a href="\1">\1</a>', value)
-    value = re.sub(r"\*([^*\n]+)\*", r"<b>\1</b>", value)
-    value = value.replace("\n", "<br>")
-    return f'<font color="{semantic_color(category)}">{value}</font>' if category != "general" else value
+    return re.sub(r"\*([^*\n]+)\*", r"<b>\1</b>", value)
+
+
+def _card_html(text: str, category: str = "general") -> str:
+    lines = text.splitlines()
+    value = "<br>".join(_inline_html(line) for line in lines)
+    is_heading = bool(lines and re.fullmatch(r"\*[^*\n]+\*", lines[0].strip()))
+    color = semantic_color(category) if is_heading else COLORS["graphite"]
+    return f'<font color="{color}">{value}</font>'
 
 
 def build_visual_payload(
@@ -40,7 +46,6 @@ def build_visual_payload(
     if logo_url:
         header.update({"imageUrl": logo_url, "imageType": "CIRCLE", "imageAltText": "Logo do projeto"})
     return {
-        "text": message,
         "cardsV2": [{"cardId": "gestao-projetos", "card": {"header": header, "sections": [{"widgets": widgets}]}}],
     }
 

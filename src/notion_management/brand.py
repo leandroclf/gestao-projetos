@@ -22,8 +22,9 @@ SEMANTIC_COLORS = {
     "general": COLORS["graphite"],
     "overdue": "#B3261E",
     "blocked": COLORS["brown"],
-    "approval": COLORS["gold_dark"],
-    "stale": COLORS["gold_dark"],
+    # Tons escuros para manter contraste AA em fundo claro do Google Chat.
+    "approval": "#7A4B00",
+    "stale": "#7A4B00",
     "customer_demand": COLORS["gold"],
     "coltec": COLORS["brown_dark"],
     "agenda": COLORS["gold_dark"],
