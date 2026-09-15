@@ -29,13 +29,20 @@ def _business_days_since(start: date, end: date) -> int:
 
 
 def _latest_comment_date(record: Record) -> date | None:
-    return max((comment.created_at for comment in record.comments), default=None)
+    latest = max(enumerate(record.comments), key=lambda item: (item[1].created_at_time.timestamp() if item[1].created_at_time else 0, item[1].created_at.toordinal(), item[0]), default=(0, None))[1]
+    return latest.created_at if latest else None
 
 
 def _has_approval_evidence(record: Record) -> bool:
     positive = ("aprovado", "aprovada", "validado", "validada", "sucesso", "passou", "evidência positiva")
-    negative = ("não realizado", "nao realizado", "pendente", "reprovado", "reprovada", "falhou", "sem evidência", "sem evidencia")
-    return any(any(term in comment.text.lower() for term in positive) and not any(term in comment.text.lower() for term in negative) for comment in record.comments)
+    negative = ("não realizado", "nao realizado", "não aprovado", "nao aprovado", "pendente", "reprovado", "reprovada", "falhou", "sem sucesso", "sem evidência", "sem evidencia")
+    for comment in record.comments:
+        text = comment.text.casefold()
+        if any(term in text for term in negative):
+            continue
+        if any(term in text for term in positive):
+            return True
+    return False
 
 
 def audit(records: list[Record], today: date | None = None) -> AuditReport:

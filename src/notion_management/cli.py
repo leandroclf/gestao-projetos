@@ -29,8 +29,27 @@ def main() -> int:
     report_parser.add_argument("--send", action="store_true", help="Envia o relatório ao webhook gerencial configurado.")
     report_parser.add_argument("--thread-key", default=MANAGEMENT_THREAD_KEY, help="Agrupa o relatório em uma thread do GChat.")
     sub.add_parser("snapshot", help="Executa a auditoria e salva um baseline JSON local.")
+    run_parser = sub.add_parser("run", help="Executa uma coleta única e publica alertas/relatório opcionalmente.")
+    run_parser.add_argument("--send", action="store_true", help="Envia alertas e relatório aos destinos configurados.")
+    run_parser.add_argument("--thread-key", default="", help="Thread dos alertas; o relatório usa sua própria thread.")
+    run_parser.add_argument("--schedule", action="store_true", help="Aplica as regras do calendário operacional.")
+    sub.add_parser("doctor", help="Valida configuração local sem consultar o Notion nem enviar mensagens.")
     args = parser.parse_args()
     settings = Settings.from_environment()
+    if args.command == "doctor":
+        required = {
+            "NOTION_TOKEN": settings.notion_token,
+            "NOTION_TASKS_DATA_SOURCE_ID": settings.tasks_id,
+            "NOTION_PROJECTS_DATA_SOURCE_ID": settings.projects_id,
+            "NOTION_COLTEC_DATA_SOURCE_ID": settings.coltec_id,
+            "NOTION_REQUESTS_DATA_SOURCE_ID": settings.requests_id,
+        }
+        missing = [name for name, value in required.items() if not value]
+        if missing:
+            print("Configuração incompleta: " + ", ".join(missing))
+            return 2
+        print("Configuração local válida; nenhuma consulta ou publicação foi realizada.")
+        return 0
     report = run_audit(settings)
     if args.command == "audit":
         if args.json:
@@ -42,13 +61,33 @@ def main() -> int:
         message = render_management_report(report, settings.manager_id)
         print(message)
         if args.send:
+            if not report.complete:
+                print("Relatório não enviado: a coleta está incompleta.")
+                return 2
             messages = split_management_report(message)
             for part in messages:
                 send_webhook(settings.gchat_gerencial_webhook_url, part, thread_key=args.thread_key, env_name="GCHAT_GERENCIAL_WEBHOOK_URL", payload=build_visual_payload(part, settings.gchat_project_logo_url, "Relatório gerencial — Gestão de Projetos", "management_report"))
             print(f"{len(messages)} mensagem(ns) do relatório gerencial enviada(s) ao Google Chat.")
     elif args.command == "snapshot":
-        path = save_snapshot(report, settings.snapshot_dir)
+        path = save_snapshot(report, settings.snapshot_dir, run_id=report.run_id)
         print(f"Snapshot salvo em {path}.")
+    elif args.command == "run":
+        print(render_markdown(report))
+        if args.send:
+            if not report.complete:
+                print("Alertas e relatório não enviados: a coleta está incompleta.")
+                return 2
+            thread_key = args.thread_key or DEFAULT_THREAD_KEY
+            def publish_with_category(message: str, key: str, category: str) -> None:
+                for part in split_management_report(message):
+                    send_webhook(settings.gchat_webhook_url, part, thread_key=key, payload=build_visual_payload(part, settings.gchat_project_logo_url, "Alerta — Gestão de Projetos", category))
+            run_rules = scheduled_rules(datetime.now().weekday()) if args.schedule else None
+            sent = send_pending_alerts(report, Path(settings.gchat_alert_state_file), lambda message, key: publish_with_category(message, key, "general"), thread_key=thread_key, rules=run_rules, send_with_category=publish_with_category)
+            management = render_management_report(report, settings.manager_id)
+            parts = split_management_report(management)
+            for part in parts:
+                send_webhook(settings.gchat_gerencial_webhook_url, part, thread_key=MANAGEMENT_THREAD_KEY, env_name="GCHAT_GERENCIAL_WEBHOOK_URL", payload=build_visual_payload(part, settings.gchat_project_logo_url, "Relatório gerencial — Gestão de Projetos", "management_report"))
+            print(f"Run {report.run_id}: {len(sent)} alerta(s) e {len(parts)} parte(s) do relatório enviados.")
     else:
         rules = {rule.strip() for rule in args.rules.split(",") if rule.strip()} or None
         if args.schedule:
@@ -61,6 +100,9 @@ def main() -> int:
                 print(alert.message)
                 print()
         if args.command == "notify" and args.send:
+            if not report.complete:
+                print("Alertas não enviados: a coleta está incompleta.")
+                return 2
             def publish(message: str, thread_key: str) -> None:
                 publish_with_category(message, thread_key, "general")
 

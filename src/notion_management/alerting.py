@@ -146,24 +146,32 @@ def _write_state(path: Path, state: dict[str, dict[str, str]]) -> None:
 def send_pending_alerts(report: AuditReport, state_path: Path, send: Callable[[str, str], None], force: bool = False, thread_key: str = DEFAULT_THREAD_KEY, rules: set[str] | None = None, send_with_category: Callable[[str, str, str], None] | None = None) -> list[Alert]:
     state = _read_state(state_path)
     sent: list[Alert] = []
-    current = {alert.rule: alert.fingerprint for alert in pending_alerts(report, rules=rules)}
-    # Limpa regras resolvidas para que uma reincidência volte a ser notificável.
-    if rules is None:
-        state["alerts"] = {rule: fp for rule, fp in state["alerts"].items() if rule in current}
-    for alert in pending_alerts(report, rules=rules):
+    all_current = {alert.rule: alert.fingerprint for alert in pending_alerts(report)}
+    # O filtro diário seleciona entregas; ele nunca deve marcar o achado como resolvido.
+    state["alerts"] = {rule: fp for rule, fp in state["alerts"].items() if rule in all_current}
+    selected = pending_alerts(report, rules=rules)
+    deliveries = state.setdefault("deliveries", {})
+    for alert in selected:
         if not force and state["alerts"].get(alert.rule) == alert.fingerprint:
             continue
-        state["alerts"][alert.rule] = alert.fingerprint
+        delivery_key = f"{alert.rule}:{alert.fingerprint}:{thread_key}"
+        deliveries[delivery_key] = {"status": "pending"}
         _write_state(state_path, state)
         try:
             if send_with_category:
                 send_with_category(alert.message, thread_key, alert.category)
             else:
                 send(alert.message, thread_key)
+            deliveries[delivery_key] = {"status": "sent"}
+            state["alerts"][alert.rule] = alert.fingerprint
         except Exception:
+            # A timeout can occur after the remote service accepted the message.
+            # Keep an explicit unknown state and allow a later conscious retry.
+            deliveries[delivery_key] = {"status": "unknown"}
             state["alerts"].pop(alert.rule, None)
             _write_state(state_path, state)
             raise
+        _write_state(state_path, state)
         sent.append(alert)
     _write_state(state_path, state)
     return sent

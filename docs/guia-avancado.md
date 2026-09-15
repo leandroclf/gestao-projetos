@@ -1,57 +1,60 @@
-# Guia avançado de evolução — Gestão de Projetos
+# Guia avançado — Gestão de Projetos
 
-Análise técnica e plano de implementação • 15 de setembro de 2026
+Revisão 2 • 15 de setembro de 2026 • Estratégia, arquitetura e backlog de implementação
 
-Repositório: https://github.com/leandroclf/gestao-projetos  
-Referência analisada: `d8cee64160d51c804786b2583068afbcbb6018d5` (árvore retornada para main).  
-Escopo: código Python, testes, configuração de empacotamento, documentação arquitetural e operacional e unidades systemd. Os materiais binários de marca não foram auditados. Não houve alteração do repositório remoto, acesso ao host operacional ou envio ao Google Chat.
+Referência verificada na main: `985c437fdd8a4e23a4c5ce86facf54c0411c3be1`. [Commit analisado](https://github.com/leandroclf/gestao-projetos/commit/985c437fdd8a4e23a4c5ce86facf54c0411c3be1).
 
-## 1. Direção recomendada
+## 1. Parecer executivo
 
-Evoluir o projeto como uma camada confiável de acompanhamento gerencial sobre o Notion. Seu valor está em transformar registros em decisões e próximos passos verificáveis: identificar bloqueios, reduzir espera por aprovação, acompanhar compromissos e preparar a pauta da liderança.
+O projeto é uma automação gerencial Python sobre Notion e Google Chat, com quatro fontes: tarefas, projetos, COLTEC e solicitações. A base modular é adequada à necessidade observada. A evolução de maior valor é produzir achados confiáveis e próximos passos verificáveis, com histórico de execução e entrega recuperável.
 
-A próxima entrega deve corrigir a semântica dos achados e a confiabilidade da publicação. Acrescentar IA, dashboards ou novas cobranças antes disso amplificaria sinais incorretos. A arquitetura atual de aplicação Python modular é adequada ao escopo observado; não há evidência que justifique microserviços, Kubernetes ou uma plataforma distribuída nesta etapa.
+A implementação desta revisão conclui o núcleo operacional priorizado: aprovação contextual, ciclo de vida dos alertas, execução única, persistência de run, diagnóstico local, retry, particionamento e CI. Recursos como escrita no Notion, Chat App interativa e IA permanecem deliberadamente condicionais ao piloto e às decisões de governança.
 
-Preservar quatro decisões já estabelecidas: Notion como fonte oficial; comentários como histórico; escopo aplicado antes dos indicadores; publicação explicitamente habilitada. As recomendações deste guia são propostas, não funcionalidades implementadas ou decisões já aprovadas.
+Recomendação: concluir semântica de aprovação e ciclo de vida de alertas; depois consolidar coleta, persistência e operação; em seguida ampliar métricas, templates e sugestões. IA e escrita são investimentos condicionais ao sucesso do piloto, não requisitos para tornar a automação atual confiável.
 
-## 2. Estado real e maturidade
+## 2. O que existe e o que falta
 
-| Área | Evidência observada | Avaliação |
+| Área | Estado verificado | Próxima ação |
 |---|---|---|
-| Produto | Tarefas, projetos, COLTEC e solicitações de clientes | Escopo gerencial claro |
-| Arquitetura | Adaptadores Notion/GChat e regras separadas | Boa base para evolução incremental |
-| Segurança operacional | Leitura no Notion, envio com `--send`, parser de `.env` sem shell | Princípios adequados |
-| Qualidade | 41 testes unitários executados com sucesso | Cobertura útil, mas faltam jornadas e falhas |
-| Integração Notion | Paginação e timeout HTTP | Sem retry ou classificação operacional de erros |
-| Alertas | Agrupamento e fingerprint por regra; escrita atômica do JSON | Lacunas no ciclo de vida e recuperação |
-| Operação | Service com `flock`; timer em dias úteis | Configuração versionada; instalação real não verificada |
-| Histórico | Snapshot JSON por dia | Sobrescreve execuções do mesmo dia; sem metadados de execução |
-| CI | Nenhum workflow na árvore consultada | Automação de validação proposta |
+| CLI audit | Corrigida para texto e JSON | Cobrir todos os subcomandos, erros e ausência de envio implícito |
+| Aprovação | Evidência positiva/negativa contextual e ciclo ainda sem campo dedicado | Adicionar autoria elegível, ciclo e referência de teste estruturada |
+| Reincidência | Corrigida também com seleção diária; estados de entrega persistidos | Expandir estado por achado individual se houver múltiplos episódios simultâneos |
+| Destinatário | Fingerprint inclui nome e URL | Incluir IDs, destino lógico, versão de política e fatos relevantes |
+| Retry Notion | Backoff, jitter, Retry-After e limite de tentativas implementados | Orçamento total, transporte/relógio injetáveis, diagnóstico sanitizado |
+| Particionamento | Alerta usa divisão; bloco grande pode ser cortado | Validar bytes do payload completo e preservar links |
+| Testes/CI | 45 testes na entrega; CI remoto concluído com sucesso | Testes de falha, concorrência e contratos externos |
+| Persistência | JSON por regra e snapshot por data | Estado transacional e snapshots imutáveis por execução |
+| Modelo de comentários | Data sem hora; autor preservado quando disponível | Timestamp com timezone, ID e contexto da transição |
+| Operação | systemd versionado, coleta duplicada entre notify/report | Coleta única, destinos independentes e monitor externo |
+| Templates | Regra implementada; alertas desabilitados | Corrigir coleta dos blocos e observar precisão antes de enviar |
+| Governança | Resposta da API informa main sem proteção | Propor PR/revisão e CI obrigatório para alterações futuras |
 
-Fontes internas: [arquitetura](https://github.com/leandroclf/gestao-projetos/blob/d8cee64160d51c804786b2583068afbcbb6018d5/docs/architecture.md), [instruções do projeto](https://github.com/leandroclf/gestao-projetos/blob/d8cee64160d51c804786b2583068afbcbb6018d5/AGENTS.md) e [código](https://github.com/leandroclf/gestao-projetos/tree/d8cee64160d51c804786b2583068afbcbb6018d5/src/notion_management).
+[CI verificado: execução 34936039144](https://github.com/leandroclf/gestao-projetos/actions/runs/34936039144). CI verde demonstra aprovação das verificações configuradas; não comprova completude do roadmap nem operação no host.
 
-## 3. Achados prioritários
+## 3. Diagnóstico atualizado por risco
 
-Prioridades: P0 = corrigir antes de ampliar a operação; P1 = próximo ciclo; P2 = evolução após estabilização. A classificação expressa risco técnico proposto, sem alegar incidentes já ocorridos.
+P0 significa prioridade antes de ampliar uso; P1 significa próximo ciclo de estabilização. São prioridades propostas para este projeto, não classificação de incidentes já ocorridos.
 
-| ID | Prioridade | Achado e evidência | Consequência | Correção proposta |
-|---|---|---|---|---|
-| A01 | P0 | `cli.py`: `audit` sem JSON cai no ramo que acessa `args.rules`, ausente nesse subcomando; reproduzido | Comando documentado falha | Separar explicitamente os quatro comandos e testar seus caminhos |
-| A02 | P0 | `quality.py`: qualquer comentário contendo `teste` ou `aprov` satisfaz a evidência; comentário antigo “teste não realizado” suprimiu o alerta | Pendência de aprovação fica invisível | Evidência do ciclo atual, autoria elegível, resultado explícito e referência verificável |
-| A03 | P0 | `alerting.py`: estado da regra não é limpo quando não há achados; aberto → resolvido → reaberto gerou apenas um envio | Reincidência pode não avisar a equipe | Persistir ciclo de vida por achado e registrar resolução |
-| A04 | P0 | Fingerprint não inclui destinatário; troca A → B produziu o mesmo hash | Redirecionamento pode ser suprimido | Hash semântico com destinatário, política, destino e fatos relevantes |
-| A05 | P0 | Fingerprint é persistido antes do HTTP; exceções tratadas removem estado, mas interrupção abrupta entre persistência e envio não | Possível perda silenciosa de publicação | Estados pending/sending/sent/unknown e recuperação explícita |
-| A06 | P1 | `notion_api.py` encapsula erro sem retry; pausa por `Retry-After` ausente | Falha transitória interrompe o ciclo | Política central de retry com orçamento e erros acionáveis |
-| A07 | P1 | `service.py` reduz timestamps de comentários a `date` | Comentários do mesmo dia podem ser escolhidos incorretamente como mais recentes | Preservar datetime com timezone e ID do comentário |
-| A08 | P1 | Atualização usa edição da página, mas o texto acusa ausência de atualização do responsável | Afirmação sem prova de autoria/conteúdo | Separar atualização da página de comentário elegível do responsável |
-| A09 | P1 | Leitura de templates depende de `row.get('has_children')` em objeto de página | Conteúdo pode ser ignorado e gerar falsos achados | Consultar filhos da página quando política habilitada; testar payload realista |
-| A10 | P1 | `split_management_report` aceita bloco único maior que seu limite; 9.000 caracteres permaneceram em uma parte | Divisão não garante payload válido | Dividir dentro de blocos e validar tamanho do JSON final |
-| A11 | P1 | `notify` não usa o particionamento do relatório | Muitos responsáveis podem gerar mensagem grande | Pipeline comum de renderização, particionamento e entrega |
-| A12 | P1 | Service encadeia notify e report com `&&`; cada comando consulta novamente o Notion | Falha do alerta impede relatório; dados podem divergir entre consultas | Uma coleta por execução, destinos com estados independentes |
+| ID | Prioridade | Evidência e impacto | Aceite para encerrar |
+|---|---|---|---|
+| A01 | Concluído no caminho reproduzido | audit simples não acessa mais args.rules | Manter regressão e testar demais comandos |
+| A02 | P0 | “não aprovado”, “sem sucesso” e “aprovado” antigo suprimiram o alerta em reproduções locais | Negação, autoria indevida e ciclo antigo não comprovam aprovação |
+| A03 | Concluído no núcleo | Estado é limpo pelo conjunto completo mesmo quando o envio usa rules/--schedule | Evoluir para episódios individuais quando necessário |
+| A04 | Parcial | Destinatário/URL no hash; faltam IDs e destino de publicação | Mudança real de destino gera nova elegibilidade, sem depender de nome de exibição |
+| A05 | P0 | Estado gravado antes do HTTP permanece; crash pode suprimir envio | pending/sending/sent/unknown, reconciliação e testes de interrupção |
+| A06 | P1 | Retry existe, mas sem prazo global e teste de falha dedicado | Cliente respeita orçamento total, Retry-After e falha permanente |
+| A07 | P1 | Comentários convertidos a date na normalização | Ordenação inequívoca entre comentários do mesmo dia |
+| A08 | P1 | last_edited_time ainda usado para afirmar atualização do responsável | Distinguir edição da página, comentário e autoria verificável |
+| A09 | P1 | Coleta de blocos condicionada a has_children no objeto de página | Payload de página realista produz leitura correta; erro não vira seção ausente |
+| A10 | P1 | Corte por caracteres não valida JSON/card e pode separar URL | Partes respeitam bytes após serialização e preservam links acionáveis |
+| A11 | Parcial | notify agora usa divisão, sem confirmação por parte | Falha na parte N permite retomar sem reenviar partes confirmadas |
+| A12 | P1 | systemd encadeia duas coletas com && | Alertas e relatório usam mesmo run_id; falha em destino não impede o outro |
 
-Evidências: [CLI](https://github.com/leandroclf/gestao-projetos/blob/d8cee64160d51c804786b2583068afbcbb6018d5/src/notion_management/cli.py), [regras](https://github.com/leandroclf/gestao-projetos/blob/d8cee64160d51c804786b2583068afbcbb6018d5/src/notion_management/quality.py), [alertas](https://github.com/leandroclf/gestao-projetos/blob/d8cee64160d51c804786b2583068afbcbb6018d5/src/notion_management/alerting.py), [serviço de coleta](https://github.com/leandroclf/gestao-projetos/blob/d8cee64160d51c804786b2583068afbcbb6018d5/src/notion_management/service.py), [relatório](https://github.com/leandroclf/gestao-projetos/blob/d8cee64160d51c804786b2583068afbcbb6018d5/src/notion_management/management_report.py).
+A03 merece tratamento de domínio: regra fora da seleção de envio não é regra resolvida. Primeiro avaliar o conjunto completo; depois atualizar estados; por último selecionar quais notificações saem naquele dia. Uma limpeza indiscriminada do estado pode gerar reenvios em massa.
 
-Há também divergências documentais: referências a “quatro status” convivem com três status ativos e isenção de `Feito`; o README apresenta implementação/agendamento como próximos passos apesar de já existirem componentes correspondentes. A validação de templates já existe e gera achados na auditoria; o envio desses alertas é que está desabilitado. Atualizar o roadmap para distinguir implementado, desabilitado e não implementado.
+A02 também não se resolve ampliando indefinidamente uma lista de palavras. Recomenda-se um registro explícito de resultado, autor elegível, comentário de origem e ciclo. Quando a fonte não permitir comprovar o ciclo, informar “evidência não verificável” e solicitar revisão; não inventar data de entrada no status.
+
+Fontes do código: [quality.py](https://github.com/leandroclf/gestao-projetos/blob/985c437fdd8a4e23a4c5ce86facf54c0411c3be1/src/notion_management/quality.py), [alerting.py](https://github.com/leandroclf/gestao-projetos/blob/985c437fdd8a4e23a4c5ce86facf54c0411c3be1/src/notion_management/alerting.py), [service.py](https://github.com/leandroclf/gestao-projetos/blob/985c437fdd8a4e23a4c5ce86facf54c0411c3be1/src/notion_management/service.py), [CLI](https://github.com/leandroclf/gestao-projetos/blob/985c437fdd8a4e23a4c5ce86facf54c0411c3be1/src/notion_management/cli.py).
 
 ## 4. Boas práticas pesquisadas e aplicação
 
@@ -170,7 +173,7 @@ O systemd versionado usa caminho específico do host, `flock` e horário 08:00 s
 
 A CLI imprime o relatório antes do envio; em execução pelo service, isso pode colocar títulos e comentários no journal. Definir saída resumida para batch, retenção e acesso aos logs. Tokens e URLs completas de webhook devem ser redigidos em erros. Minimizar conteúdo enviado a espaços mais amplos que o acesso ao Notion. Confirmar público de cada destino antes de ampliar a distribuição.
 
-CI proposta: rodar unittest sem credenciais, validação de sintaxe e construção do pacote em PR; não executar scheduler nem enviar mensagens no CI. O AGENTS.md pede autorização para novas dependências; estas correções podem começar com a biblioteca padrão. Ferramentas adicionais de análise só devem entrar com justificativa e aprovação aplicável.
+CI existente e aprovada no commit analisado: unittest sem credenciais, validação de sintaxe e construção do pacote em PR; não executar scheduler nem enviar mensagens no CI. O AGENTS.md pede autorização para novas dependências; estas correções podem começar com a biblioteca padrão. Ferramentas adicionais de análise só devem entrar com justificativa e aprovação aplicável.
 
 Testes necessários: todos os comandos CLI; paginação com cursor inválido; 401/403/404/429/529/5xx; timezone e fronteira de dois dias úteis; comentário sem autor, negativo e do mesmo dia; reabertura; troca de responsável; duas execuções concorrentes; estado corrompido; interrupção após envio; retomada de relatório parcialmente enviado; payload multibyte; falha de uma fonte. Testes de contrato em ambiente autorizado complementam mocks, sem publicar no canal real da equipe por padrão.
 
@@ -184,16 +187,65 @@ Uma etapa futura de escrita requer plano revisável com campos antes/depois, ide
 
 Não priorizar agora: ranking individual por atividade, migração de infraestrutura sem necessidade, múltiplos agentes, chatbot genérico ou alteração automática de status a partir de palavras-chave.
 
-## 11. Validação realizada e limites
+## 11. Modelo de implementação e recuperação
 
-Foi executado `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -B -m unittest discover -s tests -v` sobre os arquivos recuperados da referência analisada: **41 testes, todos aprovados**.
+### Identidade e estados
 
-Verificações adicionais locais e sem rede reproduziram: AttributeError no audit simples; fingerprint igual após mudança de destinatário; um único envio na sequência aberto/resolvido/reaberto; ausência de achado de aprovação com comentário antigo “teste não realizado”; bloco de 9.000 caracteres não dividido.
+Chave sugerida de achado: fonte + page_id + rule_id + policy_version. Manter episódio de abertura/reabertura separado da identidade. Persistir first_seen, last_seen, resolved_at e evidências mínimas; não marcar resolução quando a fonte estiver incompleta.
 
-Os demais riscos são conclusões da leitura estática e devem receber testes direcionados na implementação. Não foram consultados dados reais do Notion, credenciais, estado do host, entrega efetiva de mensagens, configurações remotas de proteção de branch ou produção. A aprovação dos testes existentes não certifica prontidão operacional.
+Chave de entrega: episódio + destino lógico + thread + versão do renderizador + índice da parte + hash semântico. Evitar guardar o webhook como identificador, pois contém segredo. Estado pending representa parte planejada; sending representa tentativa iniciada; sent exige confirmação recebida; unknown representa interrupção ou resposta ambígua. Retry automático de unknown exige garantia ou política explícita de duplicidade aceitável.
 
-## 12. Decisões a fechar durante a implementação
+SQLite é uma opção proposta para um host único. Migrar com backup consistente, transação e simulação do próximo envio. Preservar a baseline do JSON antigo; diferenças na versão do hash não autorizam republicar tudo. Bloqueio no systemd ajuda a execução agendada, mas comandos manuais também precisam respeitar a exclusão ou transações.
 
-Confirmar fuso e calendário; definir evidência válida e ciclo de aprovação; escolher política para entregas ambíguas; estabelecer público e retenção por destino; decidir se haverá um único host; validar schema real das quatro fontes; definir prazo máximo aceitável da coleta. Essas decisões não impedem iniciar as correções reproduzidas do primeiro ciclo.
+### Contrato de execução
 
-A primeira entrega recomendada é uma versão de estabilização com CLI corrigida, aprovação contextual, alertas de reincidência e destinatário correto. O ganho esperado é confiança nas ações sugeridas à equipe, condição necessária para expandir a automação gerencial.
+Run deve conter run_id, schema_version, policy_version, code_version, started_at, finished_at e resultado complete/partial/failed. SourceResult registra coletados, incluídos, excluídos e falhas por fonte. Uma coleta incompleta pode gerar diagnóstico operacional; não deve gerar cobrança baseada em ausência de dados.
+
+Comando proposto `run`: coletar uma vez, persistir snapshot, avaliar políticas e entregar saídas independentes. Comando proposto `doctor`: validar configuração, schema e permissões sem enviar. Comando proposto `deliveries`: listar ambiguidades e permitir resolução explícita. Esses comandos ainda não existem no commit analisado.
+
+### Payloads e mensagens
+
+Validar o JSON serializado, incluindo fallback, HTML, botões e widgets; limite por caracteres da mensagem é apenas heurística. A API de mensagens documenta cards e limites próprios, que precisam ser incorporados ao contrato do adaptador. [Google Chat — recurso Message](https://developers.google.com/workspace/chat/api/reference/rest/v1/spaces.messages).
+
+Evitar cortar URLs; quando um item não couber, reduzir texto mantendo referência ao Notion. Exibir total de pendências mesmo com amostra de exemplos. Incluir identificador estável da execução no relatório e preservar confirmação por parte, sem declarar entrega exatamente uma vez.
+
+## 12. Engenharia, governança e atualização contínua
+
+O pipeline de CI existe e passou. Próximo passo: fixar Actions por SHA completo, manter permissões mínimas e automatizar propostas de atualização. GitHub recomenda pinagem por SHA para imutabilidade e proteção da cadeia de execução. [GitHub — uso seguro de Actions](https://docs.github.com/en/actions/reference/security/secure-use).
+
+Propor proteção de main com CI obrigatório e revisão. A consulta atual retornou protected=false; isso é evidência de configuração, não prova de incidente ou acesso indevido. Não alterar proteção durante a produção deste guia.
+
+Rotina sugerida: semanalmente rever changelogs de Notion e Google Chat; mensalmente atualizar dependências de desenvolvimento e Actions via PR; antes de trocar Notion-Version, executar contrato com fixtures e sandbox. Fixar a versão operacional e evitar atualização automática de API sem validação. A aplicação continua sem dependências obrigatórias adicionais; o AGENTS.md deve ser respeitado nas escolhas de ferramentas.
+
+Manter uma matriz requisito → implementação → teste → evidência → status. “Concluído” exige comportamento verificável; documento incluído no repositório, classe criada ou teste verde isolado não comprovam execução de todo o requisito.
+
+## 13. Plano de validação do próximo ciclo
+
+| Cenário | Resultado esperado |
+|---|---|
+| Negação: não aprovado / sem sucesso | Nenhuma evidência positiva confirmada |
+| Aprovado por pessoa fora da lista | Exigir validação de aprovador elegível |
+| Aprovação antiga após reabertura | Não reutilizar evidência de ciclo anterior |
+| Reincidência com filtro de envio | Novo episódio permanece notificável |
+| Regra omitida na terça ou quinta | Omissão de publicação não resolve o achado |
+| Dois comentários no mesmo dia | Mais recente escolhido por timestamp e desempate estável |
+| API 429 ou 529 | Espera prescrita, orçamento finito e erro explícito ao esgotar |
+| Cursor ausente com has_more=true | Falha de integridade, não coleta completa silenciosa |
+| Falha em uma fonte | Relatório parcial explícito; ausência não gera cobrança |
+| Processo encerra após o HTTP | Entrega unknown; retomada não presume falha |
+| Estado corrompido | Diagnóstico e recuperação; não reiniciar deduplicação silenciosamente |
+| Falha na segunda parte do relatório | Primeira parte permanece confirmada |
+| Emoji, HTML escapado e URL longa | Payload válido e link preservado |
+| Duas execuções concorrentes | Sem sobrescrita de estados ou dupla reserva da mesma entrega |
+
+Não foram executados testes reais contra Notion ou Google Chat nesta revisão. O CI remoto está aprovado; as reproduções locais foram convertidas em regressões para CLI, aprovação, reincidência e particionamento. Estado do host, permissões das quatro fontes, calendário e público dos espaços permanecem não verificados.
+
+## 14. Critérios de produto e decisões finais
+
+Usar quatro perguntas para priorizar: o achado é verdadeiro? a pessoa certa pode agir? o histórico explica o ocorrido? a próxima execução se recupera de falha? Entregas que respondem a essas perguntas têm prioridade sobre novos canais e interface.
+
+Critérios propostos para piloto: 100% dos alertas com origem e ação; ao menos 95% de precisão em amostra revisada de 30 achados, ou todos quando houver menos; dez ciclos úteis sem falha silenciosa. São metas locais propostas, não padrão universal. Medir tempo poupado em cobranças manuais e redução da espera por aprovação junto com qualidade e ruído.
+
+Responsabilidades sugeridas: liderança decide políticas, calendário e destinatários; desenvolvimento implementa regras e contratos; operação valida scheduler, retenção e restauração; aprovadores participam da amostra de qualidade. Não inferir desempenho individual de quantidade de comentários.
+
+A próxima entrega deve encerrar A02, A03 e A05 com testes de falha. Em paralelo ao planejamento — sem necessidade de novos serviços — preparar modelo temporal, coleta única e diagnóstico de schema. A expansão gerencial vem após confiança demonstrada nos dados e na entrega.

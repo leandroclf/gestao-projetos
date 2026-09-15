@@ -1,5 +1,6 @@
 from dataclasses import replace
-from datetime import date, datetime
+from datetime import date, datetime, timezone
+from uuid import uuid4
 from typing import Any
 
 from .config import Settings
@@ -70,6 +71,8 @@ def _comments(raw_comments: list[dict[str, Any]]) -> tuple[Comment, ...]:
             mentioned_names=tuple(names),
             author_id=author.get("id", ""),
             author_name=author.get("name") or author.get("id", "") or "Autor não identificado",
+            comment_id=raw.get("id", ""),
+            created_at_time=datetime.fromisoformat(created.replace("Z", "+00:00")),
         ))
     return tuple(sorted(result, key=lambda comment: comment.created_at))
 
@@ -135,18 +138,31 @@ def _normalize(source: str, page: dict[str, Any], status_name: str, owner_name: 
     )
 
 
-def run_audit(settings: Settings, today: date | None = None) -> AuditReport:
+def run_audit(settings: Settings, today: date | None = None, run_id: str | None = None) -> AuditReport:
     settings.require_notion_token()
+    started_at = datetime.now(timezone.utc)
+    run_id = run_id or uuid4().hex
     client = NotionClient(settings.notion_token, settings.notion_version)
     records: list[Record] = []
     excluded_by_source: dict[str, int] = {}
+    source_results: dict[str, dict] = {}
+    complete = True
     for source, data_source_id, status, owner, due, project in [
         ("tasks", settings.tasks_id, "Status", "Responsável", "Prazo", "Projeto"),
         ("projects", settings.projects_id, "Status", "Responsável", "Prazo", ""),
         ("coltec", settings.coltec_id, "Status", "Responsável", "Prazo", ""),
         ("requests", settings.requests_id, "Status da solicitação", "Quem atende", "Prazo prometido ao cliente", "Projeto Tech"),
     ]:
-        for row in client.query_data_source(data_source_id):
+        try:
+            rows = client.query_data_source(data_source_id)
+        except Exception as exc:
+            complete = False
+            source_results[source] = {"status": "failed", "error": type(exc).__name__}
+            continue
+        included = 0
+        excluded = 0
+        source_error = ""
+        for row in rows:
             record = _normalize(source, row, status, owner, due, project)
             report_statuses = REPORT_TASK_STATUSES if source == "tasks" else REPORT_PROJECT_STATUSES
             if in_scope(record, settings):
@@ -157,17 +173,32 @@ def run_audit(settings: Settings, today: date | None = None) -> AuditReport:
                 ) or (
                     source == "requests" and record.status in REPORT_REQUEST_STATUSES
                 )
-                if should_read_comments:
-                    comments = _comments(client.list_comments(record.page_id))
-                    record = replace(record, comments=comments, comment_recipient=_last_team_mention(comments, settings.team_member_ids + (settings.manager_id,)))
-                if source in {"tasks", "projects"} and record.status not in {"Feito", "Done", "Concluído", "Concluída"}:
-                    blocks = client.list_block_children(record.page_id) if row.get("has_children") else []
-                    record = replace(record, template_missing=missing_sections(source, row.get("properties", {}), blocks))
+                try:
+                    if should_read_comments:
+                        comments = _comments(client.list_comments(record.page_id))
+                        record = replace(record, comments=comments, comment_recipient=_last_team_mention(comments, settings.team_member_ids + (settings.manager_id,)))
+                    if source in {"tasks", "projects"} and record.status not in {"Feito", "Done", "Concluído", "Concluída"}:
+                        blocks = client.list_block_children(record.page_id) if row.get("has_children") else []
+                        record = replace(record, template_missing=missing_sections(source, row.get("properties", {}), blocks))
+                except Exception as exc:
+                    complete = False
+                    source_error = type(exc).__name__
+                    continue
                 records.append(record)
+                included += 1
             else:
                 excluded_by_source[source] = excluded_by_source.get(source, 0) + 1
+                excluded += 1
+        source_results[source] = {"status": "partial" if source_error else "ok", "queried": len(rows), "included": included, "excluded": excluded}
+        if source_error:
+            source_results[source]["error"] = source_error
     report = audit(records, today=today)
     report.excluded_by_source = excluded_by_source
+    report.run_id = run_id
+    report.started_at = started_at
+    report.finished_at = datetime.now(timezone.utc)
+    report.complete = complete
+    report.source_results = source_results
     return report
 
 

@@ -48,7 +48,7 @@ def _comment_author(comment: Comment | None) -> str:
 
 
 def _latest(record: Record) -> Comment | None:
-    return max(record.comments, key=lambda comment: comment.created_at, default=None)
+    return max(enumerate(record.comments), key=lambda item: (item[1].created_at_time.timestamp() if item[1].created_at_time else 0, item[1].created_at.toordinal(), item[0]), default=(0, None))[1]
 
 
 def _mentions_manager(record: Record, manager_id: str) -> list[Comment]:

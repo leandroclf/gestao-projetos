@@ -1,8 +1,10 @@
 [Unit]
-Description=Alertas e relatório gerencial visual da equipe de Integrações
+Description=Auditoria, alertas e relatório gerencial da equipe de Integrações
 
 [Service]
 Type=oneshot
-WorkingDirectory=/home/leandro/IdeaProjects/lfsolucoes/gestao-projetos
+WorkingDirectory=/opt/gestao-projetos
 Environment=PYTHONPATH=src
-ExecStart=/usr/bin/flock -n /tmp/gestao-projetos-alertas.lock /bin/sh -c '/usr/bin/python3 -m notion_management notify --send --schedule && /usr/bin/python3 -m notion_management report --send'
+EnvironmentFile=-/opt/gestao-projetos/.env
+ExecStart=/usr/bin/flock -n /tmp/gestao-projetos-alertas.lock /usr/bin/python3 -m notion_management run --send --schedule
+TimeoutStartSec=300

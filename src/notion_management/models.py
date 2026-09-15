@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime
 
 
 @dataclass(frozen=True)
@@ -10,6 +10,8 @@ class Comment:
     mentioned_names: tuple[str, ...] = ()
     author_id: str = ""
     author_name: str = ""
+    comment_id: str = ""
+    created_at_time: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -53,6 +55,12 @@ class AuditReport:
     records: list[Record] = field(default_factory=list)
     findings: list[Finding] = field(default_factory=list)
     excluded_by_source: dict[str, int] = field(default_factory=dict)
+    run_id: str = ""
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+    policy_version: str = "1"
+    complete: bool = True
+    source_results: dict[str, dict] = field(default_factory=dict)
 
     @property
     def counts_by_source(self) -> dict[str, int]:
