@@ -10,7 +10,7 @@ O projeto é uma automação gerencial Python sobre Notion e Google Chat, com qu
 
 A implementação desta revisão conclui o núcleo operacional priorizado: aprovação contextual, ciclo de vida dos alertas, execução única, persistência de run, diagnóstico local, retry, particionamento e CI. Recursos como escrita no Notion, Chat App interativa e IA permanecem deliberadamente condicionais ao piloto e às decisões de governança.
 
-Recomendação: concluir semântica de aprovação e ciclo de vida de alertas; depois consolidar coleta, persistência e operação; em seguida ampliar métricas, templates e sugestões. IA e escrita são investimentos condicionais ao sucesso do piloto, não requisitos para tornar a automação atual confiável.
+Recomendação: consolidar aprovação estruturada, persistência transacional e operação; em seguida ampliar métricas, templates e sugestões. IA e escrita são investimentos condicionais ao sucesso do piloto, não requisitos para tornar a automação atual confiável.
 
 ## 2. O que existe e o que falta
 
@@ -25,7 +25,7 @@ Recomendação: concluir semântica de aprovação e ciclo de vida de alertas; d
 | Testes/CI | 45 testes na entrega; CI remoto concluído com sucesso | Testes de falha, concorrência e contratos externos |
 | Persistência | JSON por regra e snapshot por data | Estado transacional e snapshots imutáveis por execução |
 | Modelo de comentários | Data sem hora; autor preservado quando disponível | Timestamp com timezone, ID e contexto da transição |
-| Operação | systemd versionado, coleta duplicada entre notify/report | Coleta única, destinos independentes e monitor externo |
+| Operação | systemd usa `run --send --schedule` e coleta única; monitor externo ainda ausente | Adicionar monitor externo e ensaio de restauração |
 | Templates | Regra implementada; alertas desabilitados | Corrigir coleta dos blocos e observar precisão antes de enviar |
 | Governança | Resposta da API informa main sem proteção | Propor PR/revisão e CI obrigatório para alterações futuras |
 
@@ -38,7 +38,7 @@ P0 significa prioridade antes de ampliar uso; P1 significa próximo ciclo de est
 | ID | Prioridade | Evidência e impacto | Aceite para encerrar |
 |---|---|---|---|
 | A01 | Concluído no caminho reproduzido | audit simples não acessa mais args.rules | Manter regressão e testar demais comandos |
-| A02 | P0 | “não aprovado”, “sem sucesso” e “aprovado” antigo suprimiram o alerta em reproduções locais | Negação, autoria indevida e ciclo antigo não comprovam aprovação |
+| A02 | Parcial | Negações agora não satisfazem evidência; autoria e ciclo ainda não são estruturados | Exigir aprovador elegível, ciclo atual, resultado e referência de teste |
 | A03 | Concluído no núcleo | Estado é limpo pelo conjunto completo mesmo quando o envio usa rules/--schedule | Evoluir para episódios individuais quando necessário |
 | A04 | Parcial | Destinatário/URL no hash; faltam IDs e destino de publicação | Mudança real de destino gera nova elegibilidade, sem depender de nome de exibição |
 | A05 | P0 | Estado gravado antes do HTTP permanece; crash pode suprimir envio | pending/sending/sent/unknown, reconciliação e testes de interrupção |
@@ -201,7 +201,7 @@ SQLite é uma opção proposta para um host único. Migrar com backup consistent
 
 Run deve conter run_id, schema_version, policy_version, code_version, started_at, finished_at e resultado complete/partial/failed. SourceResult registra coletados, incluídos, excluídos e falhas por fonte. Uma coleta incompleta pode gerar diagnóstico operacional; não deve gerar cobrança baseada em ausência de dados.
 
-Comando proposto `run`: coletar uma vez, persistir snapshot, avaliar políticas e entregar saídas independentes. Comando proposto `doctor`: validar configuração, schema e permissões sem enviar. Comando proposto `deliveries`: listar ambiguidades e permitir resolução explícita. Esses comandos ainda não existem no commit analisado.
+`run` já coleta uma vez e, com `--send`, entrega alertas e relatório. `doctor` já valida configuração local sem consultar o Notion. `deliveries` continua sendo uma evolução para listar ambiguidades e permitir resolução explícita.
 
 ### Payloads e mensagens
 
@@ -248,4 +248,4 @@ Critérios propostos para piloto: 100% dos alertas com origem e ação; ao menos
 
 Responsabilidades sugeridas: liderança decide políticas, calendário e destinatários; desenvolvimento implementa regras e contratos; operação valida scheduler, retenção e restauração; aprovadores participam da amostra de qualidade. Não inferir desempenho individual de quantidade de comentários.
 
-A próxima entrega deve encerrar A02, A03 e A05 com testes de falha. Em paralelo ao planejamento — sem necessidade de novos serviços — preparar modelo temporal, coleta única e diagnóstico de schema. A expansão gerencial vem após confiança demonstrada nos dados e na entrega.
+A próxima entrega deve encerrar A02 e A05 com campos de ciclo, testes de autoria e recuperação de entrega. Em paralelo ao planejamento — sem necessidade de novos serviços — preparar modelo temporal, coleta única e diagnóstico de schema. A expansão gerencial vem após confiança demonstrada nos dados e na entrega.
