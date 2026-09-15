@@ -61,8 +61,8 @@ def _record_by_page(report: AuditReport) -> dict[str, Record]:
 
 def _fingerprint(findings: list[Finding]) -> str:
     value = "\n".join(
-        f"{finding.page_id}:{finding.rule}:{finding.title}:{finding.message}"
-        for finding in sorted(findings, key=lambda item: (item.rule, item.page_id))
+        f"{finding.page_id}:{finding.rule}:{finding.title}:{finding.message}:{finding.recipient}:{finding.url}"
+        for finding in sorted(findings, key=lambda item: (item.rule, item.page_id, item.recipient))
     )
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
@@ -146,6 +146,10 @@ def _write_state(path: Path, state: dict[str, dict[str, str]]) -> None:
 def send_pending_alerts(report: AuditReport, state_path: Path, send: Callable[[str, str], None], force: bool = False, thread_key: str = DEFAULT_THREAD_KEY, rules: set[str] | None = None, send_with_category: Callable[[str, str, str], None] | None = None) -> list[Alert]:
     state = _read_state(state_path)
     sent: list[Alert] = []
+    current = {alert.rule: alert.fingerprint for alert in pending_alerts(report, rules=rules)}
+    # Limpa regras resolvidas para que uma reincidência volte a ser notificável.
+    if rules is None:
+        state["alerts"] = {rule: fp for rule, fp in state["alerts"].items() if rule in current}
     for alert in pending_alerts(report, rules=rules):
         if not force and state["alerts"].get(alert.rule) == alert.fingerprint:
             continue

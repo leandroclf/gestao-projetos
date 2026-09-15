@@ -32,6 +32,12 @@ def main() -> int:
     args = parser.parse_args()
     settings = Settings.from_environment()
     report = run_audit(settings)
+    if args.command == "audit":
+        if args.json:
+            print(json.dumps(asdict(report), ensure_ascii=False, default=str, indent=2))
+        else:
+            print(render_markdown(report))
+        return 0
     if args.command == "report":
         message = render_management_report(report, settings.manager_id)
         print(message)
@@ -43,8 +49,6 @@ def main() -> int:
     elif args.command == "snapshot":
         path = save_snapshot(report, settings.snapshot_dir)
         print(f"Snapshot salvo em {path}.")
-    elif args.command == "audit" and args.json:
-        print(json.dumps(asdict(report), ensure_ascii=False, default=str, indent=2))
     else:
         rules = {rule.strip() for rule in args.rules.split(",") if rule.strip()} or None
         if args.schedule:
@@ -61,7 +65,8 @@ def main() -> int:
                 publish_with_category(message, thread_key, "general")
 
             def publish_with_category(message: str, thread_key: str, category: str) -> None:
-                send_webhook(settings.gchat_webhook_url, message, thread_key=args.thread_key or thread_key or DEFAULT_THREAD_KEY, payload=build_visual_payload(message, settings.gchat_project_logo_url, "Alerta — Gestão de Projetos", category))
+                for part in split_management_report(message):
+                    send_webhook(settings.gchat_webhook_url, part, thread_key=args.thread_key or thread_key or DEFAULT_THREAD_KEY, payload=build_visual_payload(part, settings.gchat_project_logo_url, "Alerta — Gestão de Projetos", category))
 
             published = 0
             thread_key = args.thread_key or DEFAULT_THREAD_KEY

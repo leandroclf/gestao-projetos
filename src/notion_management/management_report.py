@@ -183,6 +183,13 @@ def split_management_report(message: str, max_chars: int = MAX_GCHAT_MESSAGE_CHA
     current: list[str] = []
     current_size = 0
     for block in blocks:
+        if len(block) > max_chars:
+            if current:
+                chunks.append("\n\n".join(current))
+                current, current_size = [], 0
+            for index in range(0, len(block), max_chars):
+                chunks.append(block[index:index + max_chars])
+            continue
         block_size = len(block) + (2 if current else 0)
         if current and current_size + block_size > max_chars:
             chunks.append("\n\n".join(current))

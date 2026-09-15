@@ -33,8 +33,9 @@ def _latest_comment_date(record: Record) -> date | None:
 
 
 def _has_approval_evidence(record: Record) -> bool:
-    terms = ("teste", "evidência", "evidencia", "aprov", "validado", "e2e")
-    return any(any(term in comment.text.lower() for term in terms) for comment in record.comments)
+    positive = ("aprovado", "aprovada", "validado", "validada", "sucesso", "passou", "evidência positiva")
+    negative = ("não realizado", "nao realizado", "pendente", "reprovado", "reprovada", "falhou", "sem evidência", "sem evidencia")
+    return any(any(term in comment.text.lower() for term in positive) and not any(term in comment.text.lower() for term in negative) for comment in record.comments)
 
 
 def audit(records: list[Record], today: date | None = None) -> AuditReport:
