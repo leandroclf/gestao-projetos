@@ -75,6 +75,13 @@ class RegressionTest(unittest.TestCase):
         self.assertEqual("failed", report.source_results["projects"]["status"])
         self.assertEqual("run-x", report.run_id)
 
+    def test_deliveries_command_reports_unknown_delivery(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_path = Path(tmp) / "state.json"
+            state_path.write_text(json.dumps({"alerts": {}, "deliveries": {"x": {"status": "unknown"}}}))
+            with patch.dict("os.environ", {"GCHAT_ALERT_STATE_FILE": str(state_path)}), patch.object(sys, "argv", ["hive-notion", "deliveries"]):
+                self.assertEqual(2, main())
+
 
 if __name__ == "__main__":
     unittest.main()

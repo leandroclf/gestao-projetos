@@ -21,6 +21,7 @@ PYTHONPATH=src python3 -m notion_management notify --send
 PYTHONPATH=src python3 -m notion_management snapshot
 PYTHONPATH=src python3 -m notion_management report
 PYTHONPATH=src python3 -m notion_management doctor
+PYTHONPATH=src python3 -m notion_management deliveries
 PYTHONPATH=src python3 -m notion_management run --send
 ```
 
@@ -80,7 +81,7 @@ Para acompanhar tendência, execute `snapshot` uma vez por período em um ambien
 
 Para gerar o relatório gerencial completo, execute `PYTHONPATH=src python3 -m notion_management report`. O relatório inclui tarefas e projetos ativos, assuntos/ações da COLTEC sob responsabilidade do gestor, status, prazo quando aplicável, data da última atividade/status, comentário mais recente e uma seção com comentários que mencionaram o gestor configurado em `NOTION_MANAGER_ID`. Para enviar ao espaço gerencial, use `report --send`; o destino é `GCHAT_GERENCIAL_WEBHOOK_URL` e a thread padrão é `gestao-gerencial`. Alertas e relatórios são enviados com cards visuais e links acionáveis; configure `GCHAT_PROJECT_LOGO_URL` para exibir a logo do projeto.
 
-Use `doctor` para validar configuração local sem consultar o Notion. Use `run` para realizar uma única coleta e compartilhar o mesmo `run_id` entre snapshot, alertas e relatório; publicações são bloqueadas quando alguma fonte falha.
+Use `doctor` para validar configuração local sem consultar o Notion. Use `deliveries` para inspecionar estados `pending`, `sent` e `unknown`. Use `run` para realizar uma única coleta, persistir o snapshot e compartilhar o mesmo `run_id` entre alertas e relatório; publicações são bloqueadas quando alguma fonte falha.
 
 O agendamento do host está definido em `ops/systemd/gestao-projetos-alertas.timer`, com armazenamento seguro das variáveis do `.env`, logs no journal, timeout, retry e controle de duplicidade. CI e outros schedulers não são ativados por este repositório.
 

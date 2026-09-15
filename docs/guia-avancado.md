@@ -201,7 +201,7 @@ SQLite é uma opção proposta para um host único. Migrar com backup consistent
 
 Run deve conter run_id, schema_version, policy_version, code_version, started_at, finished_at e resultado complete/partial/failed. SourceResult registra coletados, incluídos, excluídos e falhas por fonte. Uma coleta incompleta pode gerar diagnóstico operacional; não deve gerar cobrança baseada em ausência de dados.
 
-`run` já coleta uma vez e, com `--send`, entrega alertas e relatório. `doctor` já valida configuração local sem consultar o Notion. `deliveries` continua sendo uma evolução para listar ambiguidades e permitir resolução explícita.
+`run` já coleta uma vez e, com `--send`, entrega alertas e relatório. `doctor` já valida configuração local sem consultar o Notion. `deliveries` já lista as entregas registradas e retorna código 2 quando existe estado `unknown`; a resolução explícita de ambiguidades continua sendo uma evolução.
 
 ### Payloads e mensagens
 

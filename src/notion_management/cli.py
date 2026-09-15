@@ -4,7 +4,7 @@ from datetime import datetime
 from dataclasses import asdict
 from pathlib import Path
 
-from .alerting import DEFAULT_THREAD_KEY, INTRO_MESSAGE, pending_alerts, scheduled_rules, send_pending_alerts, validation_message
+from .alerting import DEFAULT_THREAD_KEY, INTRO_MESSAGE, _read_state, pending_alerts, scheduled_rules, send_pending_alerts, validation_message
 from .config import Settings
 from .gchat import build_visual_payload, send_webhook
 from .management_report import MANAGEMENT_THREAD_KEY, render_management_report, split_management_report
@@ -34,6 +34,7 @@ def main() -> int:
     run_parser.add_argument("--thread-key", default="", help="Thread dos alertas; o relatório usa sua própria thread.")
     run_parser.add_argument("--schedule", action="store_true", help="Aplica as regras do calendário operacional.")
     sub.add_parser("doctor", help="Valida configuração local sem consultar o Notion nem enviar mensagens.")
+    sub.add_parser("deliveries", help="Lista entregas pendentes, confirmadas ou ambíguas do estado local.")
     args = parser.parse_args()
     settings = Settings.from_environment()
     if args.command == "doctor":
@@ -50,6 +51,15 @@ def main() -> int:
             return 2
         print("Configuração local válida; nenhuma consulta ou publicação foi realizada.")
         return 0
+    if args.command == "deliveries":
+        state = _read_state(Path(settings.gchat_alert_state_file))
+        deliveries = state.get("deliveries", {})
+        if not deliveries:
+            print("Nenhuma entrega registrada.")
+            return 0
+        for key, value in sorted(deliveries.items()):
+            print(f"{value.get('status', 'unknown')}\t{key}")
+        return 2 if any(value.get("status") == "unknown" for value in deliveries.values()) else 0
     report = run_audit(settings)
     if args.command == "audit":
         if args.json:
@@ -73,6 +83,8 @@ def main() -> int:
         print(f"Snapshot salvo em {path}.")
     elif args.command == "run":
         print(render_markdown(report))
+        snapshot_path = save_snapshot(report, settings.snapshot_dir, run_id=report.run_id)
+        print(f"Snapshot da execução: {snapshot_path}")
         if args.send:
             if not report.complete:
                 print("Alertas e relatório não enviados: a coleta está incompleta.")
