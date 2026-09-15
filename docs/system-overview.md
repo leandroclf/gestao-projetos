@@ -15,6 +15,38 @@ O sistema atende a quatro fontes:
 
 O Notion permanece como fonte oficial. O Google Chat é somente um canal de alerta e coordenação rápida. A aplicação não altera status, propriedades, relações, comentários, páginas ou bases do Notion e não cria tarefas ou projetos automaticamente.
 
+## Galeria visual
+
+As imagens abaixo são as renderizações visuais dos diagramas Mermaid deste guia. Os arquivos-fonte editáveis ficam em [`docs/diagrams/`](diagrams/); assim, a documentação oferece tanto a visualização pronta quanto a representação versionável do fluxo.
+
+### Contexto da aplicação
+
+![Contexto da aplicação](diagrams/rendered/01-contexto.png)
+
+### Fluxo completo da auditoria
+
+![Fluxo completo da auditoria](diagrams/rendered/02-auditoria.png)
+
+### Aplicação do escopo
+
+![Aplicação do escopo](diagrams/rendered/03-escopo.png)
+
+### Matriz de decisão das regras
+
+![Matriz de decisão das regras](diagrams/rendered/04-regras.png)
+
+### Alertas, deduplicação e entrega
+
+![Alertas, deduplicação e entrega](diagrams/rendered/05-alertas.png)
+
+### Relatório gerencial
+
+![Relatório gerencial](diagrams/rendered/06-relatorio.png)
+
+### Agendamento systemd
+
+![Agendamento systemd](diagrams/rendered/07-agendamento.png)
+
 ```mermaid
 flowchart LR
     N[Notion<br/>fonte oficial] --> Q[Consulta paginada]

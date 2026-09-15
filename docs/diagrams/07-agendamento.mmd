@@ -1,0 +1,21 @@
+sequenceDiagram
+    participant Timer as systemd timer
+    participant Service as systemd service
+    participant Lock as flock do host
+    participant CLI as run --send --schedule
+    participant Notion as Notion API
+    participant State as Estado local
+    participant Chat as Google Chat
+    Timer->>Service: Segunda a sexta, 08:00
+    Service->>Lock: /tmp/gestao-projetos-alertas.lock
+    alt lock disponível
+        Lock->>CLI: Timeout de 300s
+        CLI->>Notion: Coleta fontes e comentários
+        Notion-->>CLI: Dados
+        CLI->>State: Snapshot com run_id
+        CLI->>State: Deduplicação e deliveries
+        CLI->>Chat: Alertas selecionados
+        CLI->>Chat: Relatório gerencial
+    else execução concorrente
+        Lock-->>Service: Não executa
+    end

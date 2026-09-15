@@ -1,0 +1,17 @@
+flowchart TD
+    R[Record normalizado] --> TYPE{Fonte}
+    TYPE -- tarefas/projetos --> AREA{Alguma Área = Integrações?}
+    AREA -- sim --> INCLUDE[Inclui]
+    AREA -- não --> OWNER{Responsável é gestor ou membro?}
+    OWNER -- sim --> INCLUDE
+    OWNER -- não --> EXCLUDE[Exclui e contabiliza]
+    TYPE -- COLTEC --> CA{Área = Integração?}
+    CA -- sim --> INCLUDE
+    CA -- não --> CM{Responsável é gestor?}
+    CM -- sim --> INCLUDE
+    CM -- não --> EXCLUDE
+    TYPE -- solicitações --> TEAM{Time Responsável = HIVEPlace?}
+    TEAM -- sim --> INCLUDE
+    TEAM -- não --> ATT[Atendente é gestor?]
+    ATT -- sim --> INCLUDE
+    ATT -- não --> EXCLUDE

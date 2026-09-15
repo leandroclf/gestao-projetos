@@ -1,0 +1,21 @@
+flowchart TD
+    REPORT[AuditReport completo] --> BUILD[Constrói alertas]
+    BUILD --> FILTER[Filtra regras/calendário]
+    FILTER --> GROUP[Agrupa por regra e destinatário]
+    GROUP --> FP[Gera fingerprint]
+    FP --> LOCK[Adquire lock do estado]
+    LOCK --> READ[Lê estado local]
+    READ --> CLEAN[Remove fingerprints resolvidos]
+    CLEAN --> CHANGE{Mudou ou --force?}
+    CHANGE -- não --> SKIP[Não publica]
+    CHANGE -- sim --> PENDING[Registra pending]
+    PENDING --> POST[POST no webhook]
+    POST --> OK{Sucesso?}
+    OK -- sim --> SENT[Registra sent + fingerprint]
+    OK -- não --> UNKNOWN[Registra unknown e propaga erro]
+    SENT --> MORE{Mais alertas?}
+    SKIP --> MORE
+    MORE -- sim --> CHANGE
+    MORE -- não --> RELEASE[Libera lock]
+    UNKNOWN --> FAIL([Fim com falha])
+    RELEASE --> END([Fim])

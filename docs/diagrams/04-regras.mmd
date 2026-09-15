@@ -1,0 +1,30 @@
+flowchart TD
+    R[Record em escopo] --> T{É tarefa?}
+    T -- não --> P0{Solicitação P0 ativa sem projeto?}
+    P0 -- sim --> F1[urgent_without_project]
+    P0 -- não --> PR{Projeto ativo com template incompleto?}
+    PR -- sim --> F2[template_incomplete se habilitado]
+    PR -- não --> END([Sem achado])
+    T -- sim --> ST{Status controlado?}
+    ST -- não --> END
+    ST -- sim --> OWN{Tem responsável?}
+    OWN -- não --> O[owner_missing]
+    OWN -- sim --> DUE{Tem prazo?}
+    DUE -- não --> D[due_date_missing]
+    DUE -- sim --> OD{Prazo vencido?}
+    OD -- sim --> BL{Bloqueada?}
+    BL -- não --> V[overdue]
+    BL -- sim --> CONT
+    OD -- não --> CONT
+    CONT{Para ser aprovada?} -- sim --> AP{Tem aprovador?}
+    AP -- não --> A[approver_missing]
+    AP -- sim --> EV{Comentário tem evidência positiva?}
+    EV -- não --> AU[approval_update_missing]
+    EV -- sim --> END
+    CONT -- não --> BLOCK{Bloqueada?}
+    BLOCK -- sim --> MEN{Há membro mencionado?}
+    MEN -- sim --> BF[blocked_follow_up para última menção]
+    MEN -- não --> BF2[blocked_follow_up para responsável]
+    BLOCK -- não --> UP{Atualização ausente ou > 2 dias úteis?}
+    UP -- sim --> S[stale]
+    UP -- não --> END

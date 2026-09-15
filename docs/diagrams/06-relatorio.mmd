@@ -1,0 +1,18 @@
+flowchart LR
+    AUDIT[AuditReport filtrado] --> TASKS[Tarefas ativas]
+    AUDIT --> PROJECTS[Projetos ativos]
+    AUDIT --> COLTEC[COLTEC do gestor]
+    AUDIT --> REQUESTS[Solicitações ativas]
+    AUDIT --> MENTIONS[Menções estruturadas]
+    AUDIT --> AGENDA[Apoio à pauta]
+    TASKS --> MERGE[render_management_report]
+    PROJECTS --> MERGE
+    COLTEC --> MERGE
+    REQUESTS --> MERGE
+    MENTIONS --> MERGE
+    AGENDA --> MERGE
+    MERGE --> SPLIT[Divide em blocos <= 8.000 caracteres]
+    SPLIT --> PRINT[Terminal]
+    SPLIT --> SEND{--send?}
+    SEND -- não --> END([Fim])
+    SEND -- sim --> CHAT[GCHAT_GERENCIAL_WEBHOOK_URL<br/>thread gestao-gerencial]

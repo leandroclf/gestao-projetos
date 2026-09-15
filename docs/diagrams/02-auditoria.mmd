@@ -1,0 +1,25 @@
+flowchart TD
+    START([audit / notify / report / snapshot / run]) --> CFG[Carrega Settings e .env]
+    CFG --> TOKEN{Token configurado?}
+    TOKEN -- não --> ERR[Erro acionável]
+    TOKEN -- sim --> INIT[Cria cliente e run_id]
+    INIT --> LOOP[Itera quatro fontes]
+    LOOP --> QUERY[POST query da data source]
+    QUERY --> PAGE{Há próxima página?}
+    PAGE -- sim --> QUERY
+    PAGE -- não --> NORM[Normaliza página em Record]
+    NORM --> SCOPE{Está no escopo?}
+    SCOPE -- não --> EXC[Conta excluído por fonte]
+    SCOPE -- sim --> AUX{Comentários/template necessários?}
+    AUX -- comentários --> COMMENTS[GET comentários paginado]
+    AUX -- template --> BLOCKS[GET blocos filhos paginado]
+    AUX -- não --> APPEND
+    COMMENTS --> APPEND[Adiciona registro]
+    BLOCKS --> APPEND
+    APPEND --> NEXT{Mais registros/fontes?}
+    EXC --> NEXT
+    NEXT -- sim --> LOOP
+    NEXT -- não --> AUDIT[Aplica quality.audit]
+    AUDIT --> REPORT[Completa AuditReport]
+    REPORT --> OUT[Renderiza saída solicitada]
+    OUT --> END([Fim])

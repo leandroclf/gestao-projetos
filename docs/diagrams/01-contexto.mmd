@@ -1,0 +1,17 @@
+flowchart LR
+    N[Notion<br/>fonte oficial] --> Q[Consulta paginada]
+    Q --> M[Normalização em Record]
+    M --> S[Filtro de escopo]
+    S --> A[Auditoria de qualidade]
+    S --> R[Relatório gerencial]
+    A --> O[AuditReport]
+    R --> O
+    O --> T[Terminal / JSON]
+    O --> B[Snapshot JSON]
+    O --> G[Alertas operacionais]
+    O --> H[Google Chat gerencial]
+    G --> C[Webhook operacional]
+    H --> D[Webhook gerencial]
+    C -. sinal de acompanhamento .-> E[Equipe]
+    D -. visão para decisão .-> E
+    E -. atualização oficial .-> N
