@@ -59,6 +59,14 @@ docs/
   architecture.md
 ```
 
+## Documentação completa
+
+Para uma visão consolidada das capacidades, fluxos, regras, estados de entrega,
+agendamento, configuração e limites, consulte o
+[`docs/system-overview.md`](docs/system-overview.md). O documento inclui
+diagramas Mermaid de contexto, coleta, escopo, auditoria, alertas, relatório e
+operação agendada.
+
 ## Indicadores calculados
 
 O relatório calcula volume por fonte, status, responsável, itens sem prazo, aprovação pendente, bloqueios, P0, compromissos vencidos e cadência de atualização. As regras de tarefa são aplicadas somente nos status ativos `Em Progresso`, `Bloqueada` e `Para ser aprovada`:
