@@ -89,6 +89,15 @@ class ScopeTest(unittest.TestCase):
         self.assertEqual("author-1", comments[0].author_id)
         self.assertEqual("Amanda", comments[0].author_name)
 
+    def test_comment_day_uses_brasilia_timezone(self) -> None:
+        comments = _comments([{
+            "created_time": "2026-09-15T23:30:00.000Z",
+            "created_by": {"id": "author-1", "name": "Amanda"},
+            "rich_text": [],
+        }])
+
+        self.assertEqual(date(2026, 9, 15), comments[0].created_at)
+
     def test_snapshot_uses_iso_date_and_serializes_report(self) -> None:
         with TemporaryDirectory() as directory:
             path = save_snapshot(

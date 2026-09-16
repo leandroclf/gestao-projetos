@@ -55,6 +55,8 @@ No host, o timer executa às 8h em dias úteis um único digest com os alertas `
 
 O alerta `progress_update_missing` verifica tarefas em `Em Progresso` sem comentário criado no dia corrente. Ele é executado em ciclo separado às **16h30, de segunda a sexta, no horário de Brasília**, pela unidade `ops/systemd/gestao-projetos-andamento.timer`, na thread `gestao-integracoes-andamento`. O horário permite o registro do andamento durante o expediente e ainda gera a cobrança antes do encerramento do dia. A regra não substitui `stale`, que continua avaliando a cadência máxima de dois dias úteis.
 
+No ciclo da manhã, `progress_update_escalated` eleva a pendência quando a tarefa foi efetivamente cobrada às 16h30 do último dia útil, continua em `Em Progresso` e ainda não tem comentário no dia corrente. A escalada aparece no digest das 8h como **Pendência crítica de andamento**. Qualquer comentário no dia corrente regulariza a tarefa para o ciclo atual, inclusive quando o comentário serve para recuperar uma ausência do dia anterior; nesse caso, ela não é cobrada novamente às 16h30. Mudança para outro status também encerra a escalada. O histórico da cobrança permanece no estado local, sem alterar o Notion.
+
 ## Baseline validado — 12/09/2026
 
 Com as quatro fontes acessíveis, a auditoria filtrada encontrou:

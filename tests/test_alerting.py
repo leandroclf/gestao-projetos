@@ -5,7 +5,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from notion_management.alerting import build_alerts, build_operational_digest, pending_alerts, progress_update_rules, scheduled_rules, send_pending_alerts, update_alert_lifecycle, validation_message
-from notion_management.models import AuditReport, Finding, Record
+from notion_management.models import AuditReport, Comment, Finding, Record
 
 
 class AlertingTest(unittest.TestCase):
@@ -82,6 +82,42 @@ class AlertingTest(unittest.TestCase):
         alert = build_alerts(report)[0]
         self.assertIn("Acompanhamento em progresso sem comentário do dia", alert.message)
         self.assertEqual("progress", alert.category)
+
+    def test_morning_escalation_is_sent_only_after_previous_afternoon_alert(self) -> None:
+        report = AuditReport(
+            records=[Record(source="tasks", page_id="1", title="Sem andamento", status="Em Progresso", owner="Rafael", page_url="https://www.notion.so/1")],
+            findings=[Finding("tasks", "1", "Sem andamento", "progress_update_missing", "Tarefa em progresso sem comentário de andamento no dia atual.")],
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            state_path = Path(directory) / "alerts.json"
+            sent: list[str] = []
+            publish = lambda message, thread: sent.append(message)
+            send_pending_alerts(report, state_path, publish, thread_key="andamento", rules={"progress_update_missing"}, today=date(2026, 9, 15))
+
+            report.findings = []
+            report.records[0] = Record(source="tasks", page_id="1", title="Sem andamento", status="Em Progresso", owner="Rafael", page_url="https://www.notion.so/1")
+            send_pending_alerts(report, state_path, publish, thread_key="geral", rules=scheduled_rules(1), digest=True, today=date(2026, 9, 16))
+
+            self.assertEqual(2, len(sent))
+            self.assertIn("Pendência crítica de andamento", sent[-1])
+
+    def test_current_day_comment_prevents_afternoon_and_morning_escalation(self) -> None:
+        report = AuditReport(
+            records=[Record(source="tasks", page_id="1", title="Atualizada", status="Em Progresso", owner="Rafael", comments=(Comment(date(2026, 9, 16)),), page_url="https://www.notion.so/1")],
+            findings=[],
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            state_path = Path(directory) / "alerts.json"
+            sent: list[str] = []
+            previous = AuditReport(
+                records=[Record(source="tasks", page_id="1", title="Atualizada", status="Em Progresso", owner="Rafael", page_url="https://www.notion.so/1")],
+                findings=[Finding("tasks", "1", "Atualizada", "progress_update_missing", "Sem comentário.")],
+            )
+            send_pending_alerts(previous, state_path, lambda message, thread: sent.append(message), thread_key="andamento", rules={"progress_update_missing"}, today=date(2026, 9, 15))
+            send_pending_alerts(report, state_path, lambda message, thread: sent.append(message), thread_key="geral", rules=scheduled_rules(2), digest=True, today=date(2026, 9, 16))
+            send_pending_alerts(report, state_path, lambda message, thread: sent.append(message), thread_key="andamento", rules={"progress_update_missing"}, today=date(2026, 9, 16))
+            self.assertEqual(1, len(sent))
+            self.assertNotIn("Pendência crítica de andamento", sent[0])
 
     def test_limits_each_responsible_group_to_three_examples(self) -> None:
         report = self._report()

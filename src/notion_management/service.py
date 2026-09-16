@@ -2,6 +2,7 @@ from dataclasses import replace
 from datetime import date, datetime, timezone
 from uuid import uuid4
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from .config import Settings
 from .models import AuditReport, Comment, Record
@@ -15,6 +16,7 @@ REPORT_TASK_STATUSES = {"Em Progresso", "Bloqueada", "Para ser aprovada"}
 REPORT_PROJECT_STATUSES = {"Doing", "Blocked", "TBA", "Em Progresso", "Bloqueada", "Para ser aprovada"}
 REPORT_COLTEC_COMPLETED_STATUSES = {"Feito", "Done", "Concluído", "Concluída"}
 REPORT_REQUEST_STATUSES = {"Inbox", "Formatada", "Atendimento BBTS", "Atendimento Core", "On hold", "Comunicar cliente", "Comunicado e aguardando feedback", "Solicitação bloqueada"}
+LOCAL_TIMEZONE = ZoneInfo("America/Sao_Paulo")
 
 
 def _text(properties: dict[str, Any], name: str) -> str:
@@ -64,15 +66,16 @@ def _comments(raw_comments: list[dict[str, Any]]) -> tuple[Comment, ...]:
             if user.get("id"):
                 user_ids.append(user["id"])
                 names.append(user.get("name") or user["id"])
+        created_at_time = datetime.fromisoformat(created.replace("Z", "+00:00"))
         result.append(Comment(
-            created_at=datetime.fromisoformat(created.replace("Z", "+00:00")).date(),
+            created_at=created_at_time.astimezone(LOCAL_TIMEZONE).date(),
             text="".join(text_parts).strip(),
             mentioned_user_ids=tuple(user_ids),
             mentioned_names=tuple(names),
             author_id=author.get("id", ""),
             author_name=author.get("name") or author.get("id", "") or "Autor não identificado",
             comment_id=raw.get("id", ""),
-            created_at_time=datetime.fromisoformat(created.replace("Z", "+00:00")),
+            created_at_time=created_at_time,
         ))
     return tuple(sorted(result, key=lambda comment: comment.created_at))
 

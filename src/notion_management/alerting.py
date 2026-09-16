@@ -4,6 +4,7 @@ import os
 import tempfile
 from contextlib import contextmanager
 from dataclasses import dataclass, replace
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Callable
 
@@ -16,6 +17,7 @@ ALERT_LABELS = {
     "overdue": "Prazo vencido",
     "stale": "Atualização pendente",
     "progress_update_missing": "Acompanhamento em progresso sem comentário do dia",
+    "progress_update_escalated": "Pendência crítica de andamento",
     "approval_update_missing": "Aguardando aprovação",
     "blocked_follow_up": "Ação para desbloqueio",
     "template_incomplete": "Template incompleto",
@@ -36,6 +38,7 @@ RULE_PRIORITY = {
     "approver_missing": 2,
     "stale": 3,
     "progress_update_missing": 4,
+    "progress_update_escalated": 0,
     "due_date_missing": 5,
     "owner_missing": 6,
 }
@@ -67,6 +70,7 @@ def alert_category(rule: str) -> str:
         "stale": "stale",
         "due_date_missing": "stale",
         "progress_update_missing": "progress",
+        "progress_update_escalated": "critical",
     }.get(rule, "general")
 
 
@@ -159,7 +163,8 @@ def pending_alerts(report: AuditReport, rules: set[str] | None = None, digest: b
 
 
 def scheduled_rules(weekday: int) -> set[str]:
-    rules = set(DAILY_ALERT_RULES)
+    # A escalada só aparece quando o estado confirma uma cobrança anterior.
+    rules = set(DAILY_ALERT_RULES) | {"progress_update_escalated"}
     if weekday in {1, 3}:
         rules.add("due_date_missing")
     return rules
@@ -168,6 +173,46 @@ def scheduled_rules(weekday: int) -> set[str]:
 def progress_update_rules(weekday: int) -> set[str]:
     """Seleciona o alerta de andamento para o ciclo do fim do expediente."""
     return {"progress_update_missing"} if weekday < 5 else set()
+
+
+def _previous_business_day(day: date) -> date:
+    previous = day - timedelta(days=1)
+    while previous.weekday() >= 5:
+        previous -= timedelta(days=1)
+    return previous
+
+
+def _has_comment_on(record: Record, day: date) -> bool:
+    return any(comment.created_at == day for comment in record.comments)
+
+
+def _with_morning_escalations(report: AuditReport, state: dict, rules: set[str] | None, today: date) -> AuditReport:
+    """Adiciona a escalada matinal somente para cobranças emitidas no ciclo anterior."""
+    if not rules or "progress_update_missing" in rules or "progress_update_escalated" not in rules:
+        return report
+    alerted = state.get("progress_alerts", {})
+    previous_day = _previous_business_day(today).isoformat()
+    records = {record.page_id: record for record in report.records}
+    escalations = [
+        Finding(
+            "tasks",
+            page_id,
+            records[page_id].title,
+            "progress_update_escalated",
+            "Registrar imediatamente a evolução, impedimento, evidência ou próximo passo no comentário da tarefa.",
+            recipient=records[page_id].owner,
+            url=records[page_id].page_url,
+        )
+        for page_id, alerted_day in alerted.items()
+        if alerted_day == previous_day
+        and page_id in records
+        and records[page_id].source == "tasks"
+        and records[page_id].status == "Em Progresso"
+        and not _has_comment_on(records[page_id], today)
+    ]
+    if not escalations:
+        return report
+    return replace(report, findings=[*report.findings, *escalations])
 
 
 def validation_message(report: AuditReport) -> str:
@@ -227,9 +272,11 @@ def _state_lock(path: Path):
             fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
 
 
-def send_pending_alerts(report: AuditReport, state_path: Path, send: Callable[[str, str], None], force: bool = False, thread_key: str = DEFAULT_THREAD_KEY, rules: set[str] | None = None, send_with_category: Callable[[str, str, str], None] | None = None, digest: bool = False) -> list[Alert]:
+def send_pending_alerts(report: AuditReport, state_path: Path, send: Callable[[str, str], None], force: bool = False, thread_key: str = DEFAULT_THREAD_KEY, rules: set[str] | None = None, send_with_category: Callable[[str, str, str], None] | None = None, digest: bool = False, today: date | None = None) -> list[Alert]:
     with _state_lock(state_path):
         state = _read_state(state_path)
+        today = today or date.today()
+        report = _with_morning_escalations(report, state, rules, today)
         update_alert_lifecycle(state, report)
         sent: list[Alert] = []
         all_current = {alert.rule: alert.fingerprint for alert in pending_alerts(report, digest=digest)}
@@ -259,5 +306,14 @@ def send_pending_alerts(report: AuditReport, state_path: Path, send: Callable[[s
             state["alerts"][alert.rule] = alert.fingerprint
             _write_state(state_path, state)
             sent.append(alert)
+        if rules and "progress_update_missing" in rules:
+            progress_alerts = state.setdefault("progress_alerts", {})
+            for finding in report.findings:
+                if finding.rule == "progress_update_missing":
+                    progress_alerts[finding.page_id] = today.isoformat()
+            for page_id in list(progress_alerts):
+                record = next((item for item in report.records if item.page_id == page_id), None)
+                if record and (record.status != "Em Progresso" or _has_comment_on(record, today)):
+                    del progress_alerts[page_id]
         _write_state(state_path, state)
         return sent
