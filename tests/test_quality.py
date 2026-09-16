@@ -49,6 +49,23 @@ class QualityTest(unittest.TestCase):
         ], today=date(2026, 9, 13))
         self.assertNotIn("stale", {finding.rule for finding in report.findings})
 
+    def test_in_progress_task_requires_comment_on_current_day(self) -> None:
+        report = audit([
+            Record(
+                source="tasks", page_id="1", title="Sem andamento", status="Em Progresso",
+                owner="Pessoa", due_date=date(2026, 9, 15), updated_at=date(2026, 9, 15),
+                comments=(Comment(date(2026, 9, 14), "Ontem avancei."),),
+            ),
+            Record(
+                source="tasks", page_id="2", title="Com andamento", status="Em Progresso",
+                owner="Pessoa", due_date=date(2026, 9, 15), updated_at=date(2026, 9, 15),
+                comments=(Comment(date(2026, 9, 15), "Hoje avancei."),),
+            ),
+        ], today=date(2026, 9, 15))
+        findings = {(finding.page_id, finding.rule) for finding in report.findings}
+        self.assertIn(("1", "progress_update_missing"), findings)
+        self.assertNotIn(("2", "progress_update_missing"), findings)
+
     def test_approval_update_is_directed_to_approver_and_requires_evidence(self) -> None:
         report = audit([Record(source="tasks", page_id="1", title="Aprovação", status="Para ser aprovada", owner="Rafael", approver_names=("Leandro",), due_date=date.today())], today=date(2026, 9, 13))
         finding = next(finding for finding in report.findings if finding.rule == "approval_update_missing")

@@ -4,10 +4,10 @@ from datetime import datetime
 from dataclasses import asdict
 from pathlib import Path
 
-from .alerting import DEFAULT_THREAD_KEY, INTRO_MESSAGE, _read_state, pending_alerts, scheduled_rules, send_pending_alerts, validation_message
+from .alerting import DEFAULT_THREAD_KEY, INTRO_MESSAGE, _read_state, pending_alerts, progress_update_rules, scheduled_rules, send_pending_alerts, validation_message
 from .config import Settings
 from .gchat import build_visual_payload, send_webhook
-from .management_report import MANAGEMENT_THREAD_KEY, render_management_report, split_management_report
+from .management_report import MANAGEMENT_THREAD_KEY, render_management_report, render_management_summary, split_management_report
 from .snapshot import save_snapshot
 from .service import render_markdown, run_audit
 
@@ -25,6 +25,7 @@ def main() -> int:
     notify_parser.add_argument("--validation", action="store_true", help="Publica a mensagem de validação com as pendências atuais.")
     notify_parser.add_argument("--rules", default="", help="Regras separadas por vírgula para este ciclo de alerta.")
     notify_parser.add_argument("--schedule", action="store_true", help="Aplica a seleção diária ou de terça/quinta do agendamento do host.")
+    notify_parser.add_argument("--progress-schedule", action="store_true", help="Seleciona o alerta de andamento do fim do expediente em dias úteis.")
     report_parser = sub.add_parser("report", help="Gera o relatório gerencial de tarefas, projetos e menções.")
     report_parser.add_argument("--send", action="store_true", help="Envia o relatório ao webhook gerencial configurado.")
     report_parser.add_argument("--thread-key", default=MANAGEMENT_THREAD_KEY, help="Agrupa o relatório em uma thread do GChat.")
@@ -74,7 +75,7 @@ def main() -> int:
             if not report.complete:
                 print("Relatório não enviado: a coleta está incompleta.")
                 return 2
-            messages = split_management_report(message)
+            messages = split_management_report(render_management_summary(report, settings.manager_id))
             for part in messages:
                 send_webhook(settings.gchat_gerencial_webhook_url, part, thread_key=args.thread_key, env_name="GCHAT_GERENCIAL_WEBHOOK_URL", payload=build_visual_payload(part, settings.gchat_project_logo_url, "Relatório gerencial — Gestão de Projetos", "management_report"))
             print(f"{len(messages)} mensagem(ns) do relatório gerencial enviada(s) ao Google Chat.")
@@ -94,9 +95,8 @@ def main() -> int:
                 for part in split_management_report(message):
                     send_webhook(settings.gchat_webhook_url, part, thread_key=key, payload=build_visual_payload(part, settings.gchat_project_logo_url, "Alerta — Gestão de Projetos", category))
             run_rules = scheduled_rules(datetime.now().weekday()) if args.schedule else None
-            sent = send_pending_alerts(report, Path(settings.gchat_alert_state_file), lambda message, key: publish_with_category(message, key, "general"), thread_key=thread_key, rules=run_rules, send_with_category=publish_with_category)
-            management = render_management_report(report, settings.manager_id)
-            parts = split_management_report(management)
+            sent = send_pending_alerts(report, Path(settings.gchat_alert_state_file), lambda message, key: publish_with_category(message, key, "general"), thread_key=thread_key, rules=run_rules, send_with_category=publish_with_category, digest=args.schedule)
+            parts = split_management_report(render_management_summary(report, settings.manager_id))
             for part in parts:
                 send_webhook(settings.gchat_gerencial_webhook_url, part, thread_key=MANAGEMENT_THREAD_KEY, env_name="GCHAT_GERENCIAL_WEBHOOK_URL", payload=build_visual_payload(part, settings.gchat_project_logo_url, "Relatório gerencial — Gestão de Projetos", "management_report"))
             print(f"Run {report.run_id}: {len(sent)} alerta(s) e {len(parts)} parte(s) do relatório enviados.")
@@ -104,6 +104,8 @@ def main() -> int:
         rules = {rule.strip() for rule in args.rules.split(",") if rule.strip()} or None
         if args.schedule:
             rules = scheduled_rules(datetime.now().weekday())
+        if args.progress_schedule:
+            rules = progress_update_rules(datetime.now().weekday())
         alerts = pending_alerts(report, rules=rules)
         if not alerts:
             print("Nenhuma pendência acionável no escopo da equipe de Integrações.")
@@ -131,7 +133,7 @@ def main() -> int:
                 publish(validation_message(report), thread_key)
                 published += 1
             if not args.initial and not args.validation:
-                sent = send_pending_alerts(report, Path(settings.gchat_alert_state_file), publish, force=args.force, thread_key=thread_key, rules=rules, send_with_category=publish_with_category)
+                sent = send_pending_alerts(report, Path(settings.gchat_alert_state_file), publish, force=args.force, thread_key=thread_key, rules=rules, send_with_category=publish_with_category, digest=args.schedule or args.progress_schedule)
                 published = len(sent)
             print(f"{published} mensagem(ns)/alerta(s) enviado(s) ao Google Chat.")
     return 0

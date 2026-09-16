@@ -18,9 +18,9 @@ PYTHONPATH=src python3 -m notion_management notify --send --thread-key gestao-in
 
 O webhook publica apenas no espaço em que foi criado. A mensagem deve ser tratada como sinal de acompanhamento; a decisão, a evolução e a evidência continuam nos comentários do registro oficial no Notion.
 
-O `notify` publica uma mensagem por tipo de pendência, somente quando houver mudança desde o último envio. As mensagens são agrupadas por responsável, limitadas a três exemplos por responsável e usam a thread fixa `gestao-integracoes` por padrão. O caminho do estado é `GCHAT_ALERT_STATE_FILE`, com padrão `reports/gchat-alert-state.json`. As mensagens iniciais podem ser publicadas com `notify --send --initial` e `notify --send --validation`.
+O `notify` manual publica uma mensagem por tipo de pendência. Nos ciclos automatizados (`--schedule` e `--progress-schedule`), as regras são consolidadas em um digest operacional: cada item aparece uma única vez, pela regra de maior prioridade, e os grupos continuam limitados a três exemplos por responsável. A thread padrão é `gestao-integracoes`. O caminho do estado é `GCHAT_ALERT_STATE_FILE`, com padrão `reports/gchat-alert-state.json`. Além da deduplicação de entregas, o estado registra o ciclo de vida de cada achado (`aberto`, `mantido`, `resolvido` ou `reaberto`) em `lifecycle`; esse histórico não altera o Notion. As mensagens iniciais podem ser publicadas com `notify --send --initial` e `notify --send --validation`.
 
-O relatório gerencial é somente leitura e pode ser conferido com `PYTHONPATH=src python3 -m notion_management report`. Ele lista todas as tarefas e projetos em `Em Progresso`, `Bloqueada`, `Para ser aprovada` ou nos equivalentes de projetos `Doing`, `Blocked` e `TBA`, além dos assuntos e ações da COLTEC não concluídos sob responsabilidade do gestor. Cada item inclui responsável, status, prazo quando aplicável, data da última atividade/status, comentário mais recente e links. A seção de menções identifica comentários que mencionam o usuário configurado em `NOTION_MANAGER_ID`. O envio é explícito com `report --send` e usa exclusivamente `GCHAT_GERENCIAL_WEBHOOK_URL`, na thread `gestao-gerencial` por padrão.
+O relatório gerencial é somente leitura e pode ser conferido com `PYTHONPATH=src python3 -m notion_management report`. No terminal, ele lista todas as tarefas e projetos em `Em Progresso`, `Bloqueada`, `Para ser aprovada` ou nos equivalentes de projetos `Doing`, `Blocked` e `TBA`, além dos assuntos e ações da COLTEC não concluídos sob responsabilidade do gestor. Cada item inclui responsável, status, prazo quando aplicável, data da última atividade/status, comentário mais recente e links. A seção de menções identifica comentários que mencionam o usuário configurado em `NOTION_MANAGER_ID`. O envio explícito com `report --send` usa exclusivamente `GCHAT_GERENCIAL_WEBHOOK_URL`, na thread `gestao-gerencial` por padrão, e publica apenas o resumo executivo com indicadores e até três exceções críticas.
 
 O relatório também lista as demandas de clientes ativas da área de Integrações. Na seção de apoio à pauta, uma tarefa ou projeto pode ser sugerido para avaliação na COLTEC quando houver achado de bloqueio, aprovação, prazo vencido, atualização pendente ou menção ao gestor. Registros da COLTEC sob responsabilidade do gestor aparecem como candidatos para avaliar a criação de projeto ou tarefa após uma decisão. Essas são sugestões gerenciais; nenhuma alteração ou criação é feita automaticamente.
 
@@ -39,7 +39,7 @@ O alerta `Template incompleto` está desabilitado na fase 1 para evitar ruído d
 O timer de usuário `ops/systemd/gestao-projetos-alertas.timer` define o agendamento do host. A unidade é persistente e executa a última ocorrência perdida quando a máquina retorna. A rotina é:
 
 1. executar `notify --send` nos ciclos definidos; a deduplicação impede repetição quando o conjunto de pendências não mudou;
-2. executar `report --send` no mesmo ciclo diário, publicando o acompanhamento completo no espaço gerencial configurado;
+2. executar `report --send` no mesmo ciclo diário, publicando o resumo executivo no espaço gerencial configurado; o acompanhamento completo permanece no Notion e na saída local;
 3. armazenar `NOTION_TOKEN`, `GCHAT_WEBHOOK_URL` e `GCHAT_GERENCIAL_WEBHOOK_URL` no cofre de segredos do ambiente;
 4. manter logs sem tokens, webhooks ou conteúdo sensível;
 5. alertar quando a execução falhar, sem transformar falha técnica em mensagem falsa de saúde.
@@ -51,7 +51,9 @@ OnCalendar=Mon..Fri *-*-* 08:00:00
 Persistent=true
 ```
 
-No host, o timer executa às 8h em dias úteis os alertas `stale`, `overdue`, `approval_update_missing` e `blocked_follow_up`. Às terças e quintas, inclui `due_date_missing`. `urgent_without_project` está desabilitado na fase atual. O estado permanece persistido em `GCHAT_ALERT_STATE_FILE`.
+No host, o timer executa às 8h em dias úteis um único digest com os alertas `stale`, `overdue`, `approval_update_missing` e `blocked_follow_up`. Às terças e quintas, inclui `due_date_missing`. `urgent_without_project` está desabilitado na fase atual. O estado permanece persistido em `GCHAT_ALERT_STATE_FILE`.
+
+O alerta `progress_update_missing` verifica tarefas em `Em Progresso` sem comentário criado no dia corrente. Ele é executado em ciclo separado às **16h30, de segunda a sexta, no horário de Brasília**, pela unidade `ops/systemd/gestao-projetos-andamento.timer`, na thread `gestao-integracoes-andamento`. O horário permite o registro do andamento durante o expediente e ainda gera a cobrança antes do encerramento do dia. A regra não substitui `stale`, que continua avaliando a cadência máxima de dois dias úteis.
 
 ## Baseline validado — 12/09/2026
 

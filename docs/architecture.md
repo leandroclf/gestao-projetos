@@ -74,7 +74,11 @@ Quando uma tarefa está em `Para ser aprovada`, o relatório e os alertas exibem
 
 A seção de menções identifica menções estruturadas ao ID de `NOTION_MANAGER_ID` nos comentários. As sugestões de pauta são candidatas geradas a partir de achados de bloqueio, aprovação, prazo, atualização ou menção ao gestor. Os registros da COLTEC sob responsabilidade do gestor são apresentados como candidatos a desdobramento em projeto/tarefa após confirmação da decisão. Essas sugestões não escrevem no Notion e não criam demandas automaticamente.
 
-O webhook gerencial recebe o relatório em uma thread própria (`gestao-gerencial`). As mensagens são publicadas com texto de fallback e cards `cardsV2`, usando cabeçalho, logo opcional, cores por categoria e botão para abrir o primeiro link do registro. Quando o conteúdo ultrapassa o limite seguro por mensagem, o envio é dividido em blocos completos na mesma thread, preservando todas as seções e registros. O webhook continua limitado ao espaço em que foi criado e não recebe respostas interativas.
+O webhook gerencial recebe um resumo executivo em uma thread própria (`gestao-gerencial`). O resumo apresenta indicadores e até três exceções críticas; o relatório completo continua disponível na saída local e no Notion. As mensagens são publicadas com texto de fallback e cards `cardsV2`, usando cabeçalho, logo opcional, cores por categoria e botão para abrir o primeiro link do registro. O webhook continua limitado ao espaço em que foi criado e não recebe respostas interativas.
+
+O estado local de alertas mantém, por página e regra, o ciclo de vida do achado. A primeira ocorrência é `aberto`, repetições ficam `mantido`, a ausência em uma coleta posterior marca `resolvido` e o retorno de um achado resolvido marca `reaberto`. Esse histórico apoia a redução de ruído e futuras métricas de recuperação, sem substituir o histórico oficial dos comentários no Notion.
+
+Nos ciclos agendados, o adaptador operacional consolida achados por página e mantém somente a regra de maior prioridade: bloqueio, prazo vencido, aprovação, atualização e demais pendências. Isso limita o canal da equipe a uma mensagem por ciclo, sem ocultar o detalhamento no Notion.
 
 ## Fluxo
 

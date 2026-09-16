@@ -20,6 +20,13 @@ PAUTA_FINDING_RULES = {
     "due_date_missing",
     "owner_missing",
 }
+CRITICAL_FINDING_RULES = {
+    "blocked_follow_up",
+    "overdue",
+    "approval_update_missing",
+    "approver_missing",
+    "urgent_without_project",
+}
 
 
 def _active(record: Record) -> bool:
@@ -81,6 +88,43 @@ def _record_lines(record: Record, include_due_date: bool = False, prefix: str = 
 def _reference_lines(record: Record, label: str = "Referência") -> list[str]:
     """Renderiza uma ocorrência derivada sem repetir o acompanhamento completo."""
     return [f"- {label}: {record.title} — {record.page_url}"]
+
+
+def render_management_summary(report: AuditReport, manager_id: str, max_exceptions: int = 3) -> str:
+    """Renderiza uma mensagem curta para decisão, sem substituir o relatório do Notion."""
+    records = [record for record in report.records if _active(record) and record.source in {"tasks", "projects", "coltec", "requests"}]
+    records_by_page = {record.page_id: record for record in records}
+    relevant_findings = [finding for finding in report.findings if finding.page_id in records_by_page]
+    blocked = sum(1 for finding in relevant_findings if finding.rule == "blocked_follow_up")
+    overdue = sum(1 for finding in relevant_findings if finding.rule == "overdue")
+    approvals = sum(1 for finding in relevant_findings if finding.rule in {"approval_update_missing", "approver_missing"})
+    critical = [
+        finding for finding in relevant_findings
+        if finding.rule in CRITICAL_FINDING_RULES or records_by_page[finding.page_id].priority.upper() == "P0"
+    ]
+    unique_critical: list[Finding] = []
+    seen_pages: set[str] = set()
+    for finding in critical:
+        if finding.page_id in seen_pages:
+            continue
+        seen_pages.add(finding.page_id)
+        unique_critical.append(finding)
+
+    lines = ["*Gestão de Integrações — resumo executivo*", "", f"Registros ativos: {len(records)}", f"Itens críticos: {len(unique_critical)}", f"Bloqueios relevantes: {blocked}", f"Compromissos vencidos: {overdue}", f"Aprovações pendentes: {approvals}"]
+    if not unique_critical:
+        lines.extend(["", "✅ situação sob controle", "", "Nenhuma intervenção gerencial foi identificada no ciclo."])
+        return "\n".join(lines)
+
+    lines.extend(["", "🔴 Exceções que exigem atenção"])
+    for finding in unique_critical[:max_exceptions]:
+        record = records_by_page[finding.page_id]
+        impact = "bloqueio ou risco de entrega" if finding.rule == "blocked_follow_up" else finding.message
+        link = f" — {finding.url or record.page_url}" if finding.url or record.page_url else ""
+        lines.append(f"- {record.title}{link} ({impact})")
+    if len(unique_critical) > max_exceptions:
+        lines.append(f"- ... e mais {len(unique_critical) - max_exceptions} exceção(ões) no relatório do Notion")
+    lines.extend(["", "🔗 Detalhes e próximos passos: consultar o relatório completo no Notion."])
+    return "\n".join(lines)
 
 
 def render_management_report(report: AuditReport, manager_id: str) -> str:

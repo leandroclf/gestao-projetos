@@ -15,6 +15,7 @@ from .models import AuditReport, Finding, Record
 ALERT_LABELS = {
     "overdue": "Prazo vencido",
     "stale": "Atualização pendente",
+    "progress_update_missing": "Acompanhamento em progresso sem comentário do dia",
     "approval_update_missing": "Aguardando aprovação",
     "blocked_follow_up": "Ação para desbloqueio",
     "template_incomplete": "Template incompleto",
@@ -28,6 +29,16 @@ MAX_EXAMPLES_PER_OWNER = 3
 DEFAULT_THREAD_KEY = "gestao-integracoes"
 DISABLED_ALERT_RULES = {"template_incomplete", "urgent_without_project"}
 DAILY_ALERT_RULES = {"overdue", "stale", "approval_update_missing", "blocked_follow_up"}
+RULE_PRIORITY = {
+    "blocked_follow_up": 0,
+    "overdue": 1,
+    "approval_update_missing": 2,
+    "approver_missing": 2,
+    "stale": 3,
+    "progress_update_missing": 4,
+    "due_date_missing": 5,
+    "owner_missing": 6,
+}
 
 INTRO_MESSAGE = """*Evolução do acompanhamento — Equipe de Integrações*
 
@@ -55,6 +66,7 @@ def alert_category(rule: str) -> str:
         "approver_missing": "approval",
         "stale": "stale",
         "due_date_missing": "stale",
+        "progress_update_missing": "progress",
     }.get(rule, "general")
 
 
@@ -109,8 +121,41 @@ def build_alerts(report: AuditReport, rules: set[str] | None = None) -> list[Ale
     return alerts
 
 
-def pending_alerts(report: AuditReport, rules: set[str] | None = None) -> list[Alert]:
-    return build_alerts(report, rules=rules)
+def build_operational_digest(report: AuditReport, rules: set[str] | None = None) -> Alert | None:
+    """Consolida regras do mesmo item em uma mensagem operacional única."""
+    records = _record_by_page(report)
+    selected: dict[str, Finding] = {}
+    for finding in report.findings:
+        if finding.rule not in ALERT_LABELS or finding.rule in DISABLED_ALERT_RULES or (rules is not None and finding.rule not in rules):
+            continue
+        record = records.get(finding.page_id, Record(source="", page_id="", title=""))
+        enriched = replace(finding, recipient=finding.recipient or record.owner or "Responsável não identificado", url=finding.url or record.page_url)
+        current = selected.get(finding.page_id)
+        if current is None or (RULE_PRIORITY.get(finding.rule, 99), ALERT_ORDER.index(finding.rule)) < (RULE_PRIORITY.get(current.rule, 99), ALERT_ORDER.index(current.rule)):
+            selected[finding.page_id] = enriched
+    if not selected:
+        return None
+
+    by_owner: dict[str, list[Finding]] = {}
+    for finding in selected.values():
+        by_owner.setdefault(finding.recipient, []).append(finding)
+    lines = ["*Digest operacional — Equipe de Integrações*", "", f"{len(selected)} item(ns) exigem acompanhamento."]
+    for owner in sorted(by_owner):
+        findings = sorted(by_owner[owner], key=lambda item: (RULE_PRIORITY.get(item.rule, 99), item.title))
+        lines.extend(["", f"Responsável: {owner} ({len(findings)} item(ns))"])
+        for finding in findings[:MAX_EXAMPLES_PER_OWNER]:
+            label = ALERT_LABELS[finding.rule]
+            link = f" — {finding.url}" if finding.url else ""
+            lines.append(f"- {finding.title}{link}")
+            lines.append(f"  Situação: {label}; ação: {finding.message}")
+        if len(findings) > MAX_EXAMPLES_PER_OWNER:
+            lines.append(f"- ... e mais {len(findings) - MAX_EXAMPLES_PER_OWNER} item(ns) no relatório do Notion")
+    return Alert(rule="operational_digest", message="\n".join(lines), fingerprint=_fingerprint(list(selected.values())), category="general")
+
+
+def pending_alerts(report: AuditReport, rules: set[str] | None = None, digest: bool = False) -> list[Alert]:
+    alert = build_operational_digest(report, rules=rules) if digest else None
+    return [alert] if alert else [] if digest else build_alerts(report, rules=rules)
 
 
 def scheduled_rules(weekday: int) -> set[str]:
@@ -120,11 +165,34 @@ def scheduled_rules(weekday: int) -> set[str]:
     return rules
 
 
+def progress_update_rules(weekday: int) -> set[str]:
+    """Seleciona o alerta de andamento para o ciclo do fim do expediente."""
+    return {"progress_update_missing"} if weekday < 5 else set()
+
+
 def validation_message(report: AuditReport) -> str:
     alerts = pending_alerts(report)
     if not alerts:
         return "*Validação inicial — Equipe de Integrações*\n\nNenhuma pendência acionável foi encontrada no escopo atual."
     return "*Validação inicial — Pendências atuais da Equipe de Integrações*\n\n" + "\n\n".join(alert.message for alert in alerts)
+
+
+def update_alert_lifecycle(state: dict, report: AuditReport) -> None:
+    """Atualiza o ciclo de vida por achado sem remover o histórico resolvido."""
+    lifecycle = state.setdefault("lifecycle", {})
+    current: dict[str, Finding] = {
+        f"{finding.source}:{finding.page_id}:{finding.rule}": finding
+        for finding in report.findings
+        if finding.rule in ALERT_LABELS and finding.rule not in DISABLED_ALERT_RULES
+    }
+    for key, finding in current.items():
+        previous = lifecycle.get(key, {})
+        previous_status = previous.get("status")
+        status = "reaberto" if previous_status == "resolvido" else "mantido" if previous_status else "aberto"
+        lifecycle[key] = {"status": status, "title": finding.title, "rule": finding.rule}
+    for key, value in lifecycle.items():
+        if key not in current and value.get("status") not in {None, "resolvido"}:
+            value["status"] = "resolvido"
 
 
 def _read_state(path: Path) -> dict[str, dict[str, str]]:
@@ -159,14 +227,15 @@ def _state_lock(path: Path):
             fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
 
 
-def send_pending_alerts(report: AuditReport, state_path: Path, send: Callable[[str, str], None], force: bool = False, thread_key: str = DEFAULT_THREAD_KEY, rules: set[str] | None = None, send_with_category: Callable[[str, str, str], None] | None = None) -> list[Alert]:
+def send_pending_alerts(report: AuditReport, state_path: Path, send: Callable[[str, str], None], force: bool = False, thread_key: str = DEFAULT_THREAD_KEY, rules: set[str] | None = None, send_with_category: Callable[[str, str, str], None] | None = None, digest: bool = False) -> list[Alert]:
     with _state_lock(state_path):
         state = _read_state(state_path)
+        update_alert_lifecycle(state, report)
         sent: list[Alert] = []
-        all_current = {alert.rule: alert.fingerprint for alert in pending_alerts(report)}
+        all_current = {alert.rule: alert.fingerprint for alert in pending_alerts(report, digest=digest)}
         # O filtro diário seleciona entregas; ele nunca deve marcar o achado como resolvido.
         state["alerts"] = {rule: fp for rule, fp in state["alerts"].items() if rule in all_current}
-        selected = pending_alerts(report, rules=rules)
+        selected = pending_alerts(report, rules=rules, digest=digest)
         deliveries = state.setdefault("deliveries", {})
         for alert in selected:
             if not force and state["alerts"].get(alert.rule) == alert.fingerprint:

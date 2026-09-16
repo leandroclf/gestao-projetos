@@ -1,7 +1,7 @@
 import unittest
 from datetime import date
 
-from notion_management.management_report import render_management_report, split_management_report
+from notion_management.management_report import render_management_report, render_management_summary, split_management_report
 from notion_management.models import AuditReport, Comment, Finding, Record
 
 
@@ -105,6 +105,39 @@ class ManagementReportTest(unittest.TestCase):
         message = render_management_report(report, "manager-1")
 
         self.assertNotIn("Avaliar pauta: Tarefa sem template", message)
+
+    def test_management_summary_contains_indicators_and_only_critical_exceptions(self) -> None:
+        critical = Record(
+            source="tasks", page_id="blocked", title="Entrega bloqueada", status="Bloqueada",
+            owner="Rafael", priority="P0", page_url="https://www.notion.so/blocked",
+        )
+        attention = Record(
+            source="tasks", page_id="missing-date", title="Tarefa sem prazo", status="Em Progresso",
+            owner="Cesar", page_url="https://www.notion.so/missing-date",
+        )
+        report = AuditReport(
+            records=[critical, attention],
+            findings=[
+                Finding("tasks", "blocked", critical.title, "blocked_follow_up", "Solicitar desbloqueio."),
+                Finding("tasks", "missing-date", attention.title, "due_date_missing", "Definir prazo."),
+            ],
+        )
+
+        message = render_management_summary(report, "manager-1", max_exceptions=3)
+
+        self.assertIn("Registros ativos: 2", message)
+        self.assertIn("Bloqueios relevantes: 1", message)
+        self.assertIn("Itens críticos: 1", message)
+        self.assertIn("Entrega bloqueada", message)
+        self.assertIn("https://www.notion.so/blocked", message)
+        self.assertNotIn("Tarefa sem prazo", message)
+
+    def test_empty_management_summary_reports_no_intervention(self) -> None:
+        message = render_management_summary(AuditReport(), "manager-1")
+
+        self.assertIn("situação sob controle", message)
+        self.assertIn("Itens críticos: 0", message)
+        self.assertIn("Nenhuma intervenção gerencial", message)
 
 
 if __name__ == "__main__":

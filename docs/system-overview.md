@@ -91,6 +91,7 @@ Os achados carregam fonte, página, título, regra, mensagem, destinatário e li
 | `approver_missing` | `Para ser aprovada` sem `Aprovadora` | Responsável da tarefa |
 | `overdue` | Prazo vencido, exceto tarefa bloqueada | Responsável da tarefa |
 | `stale` | Atualização ausente ou com mais de dois dias úteis | Responsável da tarefa |
+| `progress_update_missing` | Tarefa `Em Progresso` sem comentário criado no dia corrente | Responsável da tarefa |
 | `approval_update_missing` | Aprovação sem evidência positiva ou fora da cadência | Aprovador(es) |
 | `blocked_follow_up` | Bloqueio sem avanço recente | Último membro mencionado; fallback para responsável |
 | `urgent_without_project` | Solicitação P0 ativa sem projeto técnico | Desabilitado no ciclo atual |
@@ -244,7 +245,7 @@ flowchart TD
     RELEASE --> END([Fim])
 ```
 
-O estado fica em `GCHAT_ALERT_STATE_FILE`, padrão `reports/gchat-alert-state.json`. O sistema mantém `deliveries` além do fingerprint: um timeout pode ocorrer após aceitação do Google Chat, portanto não é marcado silenciosamente como sucesso. O `--schedule` seleciona diariamente `overdue`, `stale`, `approval_update_missing` e `blocked_follow_up`, acrescentando `due_date_missing` às terças e quintas.
+O estado fica em `GCHAT_ALERT_STATE_FILE`, padrão `reports/gchat-alert-state.json`. O sistema mantém `deliveries` além do fingerprint: um timeout pode ocorrer após aceitação do Google Chat, portanto não é marcado silenciosamente como sucesso. O `--schedule` seleciona diariamente `overdue`, `stale`, `approval_update_missing` e `blocked_follow_up`, acrescentando `due_date_missing` às terças e quintas. O `--progress-schedule` seleciona `progress_update_missing` em dias úteis para o ciclo separado das 16h30.
 
 ## 7. Relatório gerencial
 

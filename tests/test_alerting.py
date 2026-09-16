@@ -4,7 +4,7 @@ import unittest
 from datetime import date, timedelta
 from pathlib import Path
 
-from notion_management.alerting import build_alerts, pending_alerts, scheduled_rules, send_pending_alerts, validation_message
+from notion_management.alerting import build_alerts, build_operational_digest, pending_alerts, progress_update_rules, scheduled_rules, send_pending_alerts, update_alert_lifecycle, validation_message
 from notion_management.models import AuditReport, Finding, Record
 
 
@@ -69,6 +69,20 @@ class AlertingTest(unittest.TestCase):
         self.assertIn("due_date_missing", scheduled_rules(1))
         self.assertIn("due_date_missing", scheduled_rules(3))
 
+    def test_progress_update_schedule_runs_only_on_business_days(self) -> None:
+        self.assertEqual({"progress_update_missing"}, progress_update_rules(0))
+        self.assertEqual({"progress_update_missing"}, progress_update_rules(4))
+        self.assertEqual(set(), progress_update_rules(5))
+
+    def test_progress_update_alert_has_specific_label_and_category(self) -> None:
+        report = AuditReport(
+            records=[Record(source="tasks", page_id="1", title="Sem andamento", status="Em Progresso", owner="Rafael", page_url="https://www.notion.so/1")],
+            findings=[Finding("tasks", "1", "Sem andamento", "progress_update_missing", "Tarefa em progresso sem comentário de andamento no dia atual.")],
+        )
+        alert = build_alerts(report)[0]
+        self.assertIn("Acompanhamento em progresso sem comentário do dia", alert.message)
+        self.assertEqual("progress", alert.category)
+
     def test_limits_each_responsible_group_to_three_examples(self) -> None:
         report = self._report()
         report.findings.extend(
@@ -94,3 +108,41 @@ class AlertingTest(unittest.TestCase):
         self.assertIn("Aguardando aprovação", alert.message)
         self.assertIn("evidências dos testes", alert.message)
         self.assertIn("Aprovador(es): Camila", alert.message)
+
+    def test_alert_lifecycle_marks_new_maintained_and_resolved_findings(self) -> None:
+        initial = AuditReport(findings=[Finding("tasks", "1", "Tarefa", "overdue", "Vencida")])
+        state = {"lifecycle": {}}
+
+        update_alert_lifecycle(state, initial)
+        self.assertEqual("aberto", state["lifecycle"]["tasks:1:overdue"]["status"])
+
+        update_alert_lifecycle(state, initial)
+        self.assertEqual("mantido", state["lifecycle"]["tasks:1:overdue"]["status"])
+
+        update_alert_lifecycle(state, AuditReport())
+        self.assertEqual("resolvido", state["lifecycle"]["tasks:1:overdue"]["status"])
+
+    def test_alert_lifecycle_marks_reopened_finding(self) -> None:
+        state = {"lifecycle": {}}
+        report = AuditReport(findings=[Finding("tasks", "1", "Tarefa", "overdue", "Vencida")])
+
+        update_alert_lifecycle(state, report)
+        update_alert_lifecycle(state, AuditReport())
+        update_alert_lifecycle(state, report)
+
+        self.assertEqual("reaberto", state["lifecycle"]["tasks:1:overdue"]["status"])
+
+    def test_operational_digest_shows_one_entry_when_item_has_multiple_findings(self) -> None:
+        record = Record("tasks", "1", "Entrega", "Em Progresso", "Rafael", page_url="https://www.notion.so/1")
+        report = AuditReport(records=[record], findings=[
+            Finding("tasks", "1", "Entrega", "stale", "Registrar atualização."),
+            Finding("tasks", "1", "Entrega", "overdue", "Atualizar prazo."),
+        ])
+
+        digest = build_operational_digest(report, rules={"stale", "overdue"})
+
+        self.assertIsNotNone(digest)
+        self.assertEqual("operational_digest", digest.rule)
+        self.assertEqual(1, digest.message.count("- Entrega"))
+        self.assertIn("Prazo vencido", digest.message)
+        self.assertNotIn("Registrar atualização", digest.message)

@@ -33,6 +33,10 @@ def _latest_comment_date(record: Record) -> date | None:
     return latest.created_at if latest else None
 
 
+def _has_comment_on(record: Record, day: date) -> bool:
+    return any(comment.created_at == day for comment in record.comments)
+
+
 def _has_approval_evidence(record: Record) -> bool:
     positive = ("aprovado", "aprovada", "validado", "validada", "sucesso", "passou", "evidência positiva")
     negative = ("não realizado", "nao realizado", "não aprovado", "nao aprovado", "pendente", "reprovado", "reprovada", "falhou", "sem sucesso", "sem evidência", "sem evidencia")
@@ -49,6 +53,16 @@ def audit(records: list[Record], today: date | None = None) -> AuditReport:
     today = today or date.today()
     findings: list[Finding] = []
     for record in records:
+        if record.source == "tasks" and record.status == "Em Progresso" and not _has_comment_on(record, today):
+            findings.append(Finding(
+                record.source,
+                record.page_id,
+                record.title,
+                "progress_update_missing",
+                "Tarefa em progresso sem comentário de andamento no dia atual.",
+                recipient=record.owner,
+                url=record.page_url,
+            ))
         if record.source == "requests" and record.status in ACTIVE_REQUEST_STATUSES and record.priority == "P0" and not record.project_id:
             findings.append(Finding(record.source, record.page_id, record.title, "urgent_without_project", "Solicitação P0 sem projeto técnico relacionado."))
         if record.source != "tasks" or record.status not in TASK_REVIEW_STATUSES:

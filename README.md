@@ -101,7 +101,7 @@ regras de voz, paleta, tipografia e revisão estão em
 [`docs/brand-communication.md`](docs/brand-communication.md). Os tokens visuais
 ficam centralizados em `src/notion_management/brand.py`.
 
-No host definido para esta operação, o systemd timer executa alertas diariamente em dias úteis às 8h e inclui `due_date_missing` adicionalmente às terças e quintas. `urgent_without_project` e `template_incomplete` permanecem desabilitados na fase atual.
+No host definido para esta operação, o systemd timer executa os alertas gerais diariamente em dias úteis às 8h e inclui `due_date_missing` adicionalmente às terças e quintas. O alerta `progress_update_missing` roda em timer separado às 16h30 nos dias úteis, cobrando tarefas `Em Progresso` sem comentário do dia. `urgent_without_project` e `template_incomplete` permanecem desabilitados na fase atual.
 
 ## Próximos incrementos seguros
 
