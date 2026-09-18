@@ -80,12 +80,11 @@ def _comments(raw_comments: list[dict[str, Any]]) -> tuple[Comment, ...]:
     return tuple(sorted(result, key=lambda comment: comment.created_at))
 
 
-def _last_team_mention(comments: tuple[Comment, ...], member_ids: tuple[str, ...]) -> str:
-    members = {item.replace("-", "").lower() for item in member_ids}
+def _last_mentioned(comments: tuple[Comment, ...]) -> str:
+    """Cobrança de bloqueio segue quem foi mencionado por último, mesmo fora da equipe."""
     for comment in reversed(comments):
-        for user_id, name in reversed(tuple(zip(comment.mentioned_user_ids, comment.mentioned_names))):
-            if user_id.replace("-", "").lower() in members:
-                return name
+        if comment.mentioned_names:
+            return comment.mentioned_names[-1]
     return ""
 
 
@@ -179,7 +178,7 @@ def run_audit(settings: Settings, today: date | None = None, run_id: str | None 
                 try:
                     if should_read_comments:
                         comments = _comments(client.list_comments(record.page_id))
-                        record = replace(record, comments=comments, comment_recipient=_last_team_mention(comments, settings.team_member_ids + (settings.manager_id,)))
+                        record = replace(record, comments=comments, comment_recipient=_last_mentioned(comments))
                     if source in {"tasks", "projects"} and record.status not in {"Feito", "Done", "Concluído", "Concluída"}:
                         blocks = client.list_block_children(record.page_id) if row.get("has_children") else []
                         record = replace(record, template_missing=missing_sections(source, row.get("properties", {}), blocks))

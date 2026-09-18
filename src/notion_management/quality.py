@@ -82,7 +82,7 @@ def audit(records: list[Record], today: date | None = None) -> AuditReport:
         recipient = record.owner
         rule = "stale"
         message = "Tarefa sem data de atualização nos comentários."
-        update_date = record.updated_at
+        update_date = max(filter(None, (record.updated_at, _latest_comment_date(record))), default=None)
         if record.status == "Para ser aprovada":
             recipient = ", ".join(record.approver_names) or "Aprovador não identificado"
             rule = "approval_update_missing"
@@ -90,8 +90,8 @@ def audit(records: list[Record], today: date | None = None) -> AuditReport:
             update_date = _latest_comment_date(record)
             if update_date and _has_approval_evidence(record):
                 continue
-        elif record.status == "Bloqueada" and record.comment_recipient:
-            recipient = record.comment_recipient
+        elif record.status == "Bloqueada":
+            recipient = record.comment_recipient or record.owner
             rule = "blocked_follow_up"
             message = "Ação necessária: revisar o comentário mais recente do bloqueio, registrar o avanço ou desbloqueio e conduzir a tarefa até Feito."
             update_date = _latest_comment_date(record)

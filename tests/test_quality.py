@@ -11,8 +11,17 @@ class QualityTest(unittest.TestCase):
             [Record(source="tasks", page_id="1", title="Integração", status="Bloqueada", due_date=date.today() - timedelta(days=1), updated_at=date.today() - timedelta(days=6))]
         )
         rules = {finding.rule for finding in report.findings}
-        self.assertTrue({"owner_missing", "stale"} <= rules)
+        self.assertTrue({"owner_missing", "blocked_follow_up"} <= rules)
+        self.assertNotIn("stale", rules)
         self.assertNotIn("overdue", rules)
+
+    def test_blocked_task_without_mention_falls_back_to_owner(self) -> None:
+        report = audit([Record(
+            source="tasks", page_id="1", title="Bloqueada sem menção", status="Bloqueada", owner="Rafael",
+            due_date=date.today(), updated_at=date.today() - timedelta(days=6),
+        )])
+        finding = next(finding for finding in report.findings if finding.rule == "blocked_follow_up")
+        self.assertEqual("Rafael", finding.recipient)
 
 
     def test_task_without_project_is_allowed(self) -> None:
@@ -71,7 +80,15 @@ class QualityTest(unittest.TestCase):
         finding = next(finding for finding in report.findings if finding.rule == "approval_update_missing")
         self.assertEqual("Leandro", finding.recipient)
 
-    def test_blocked_update_is_directed_to_last_team_member_mentioned(self) -> None:
+    def test_recent_comment_avoids_stale_even_with_outdated_property(self) -> None:
+        report = audit([Record(
+            source="tasks", page_id="1", title="Claro SIM Swap e SMV", status="Em Progresso", owner="Cesar",
+            due_date=date(2026, 9, 20), updated_at=date(2026, 9, 8),
+            comments=(Comment(date(2026, 9, 16), "Avancei na integração."),),
+        )], today=date(2026, 9, 17))
+        self.assertNotIn("stale", {finding.rule for finding in report.findings})
+
+    def test_blocked_update_is_directed_to_last_person_mentioned_even_outside_team(self) -> None:
         report = audit([Record(
             source="tasks", page_id="1", title="Bloqueada", status="Bloqueada", owner="Rafael", due_date=date.today(),
             updated_at=date(2026, 9, 12),
