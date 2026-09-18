@@ -1,4 +1,5 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from .models import AuditReport, Comment, Finding, Record, has_comment_on, latest_comment
 
@@ -6,12 +7,23 @@ from .models import AuditReport, Comment, Finding, Record, has_comment_on, lates
 TASK_REVIEW_STATUSES = {"Em Progresso", "Bloqueada", "Para ser aprovada"}
 ACTIVE_PROJECT_STATUSES = {"Inbox", "Backlog", "Ready", "Doing", "Blocked", "TBA"}
 ACTIVE_REQUEST_STATUSES = {"Inbox", "Formatada", "Atendimento BBTS", "Atendimento Core", "On hold", "Comunicar cliente", "Comunicado e aguardando feedback", "Solicitação bloqueada"}
+LOCAL_TIMEZONE = ZoneInfo("America/Sao_Paulo")
 
 
 def _business_day(day: date) -> date:
     while day.weekday() >= 5:
         day -= timedelta(days=1)
     return day
+
+
+def previous_business_day(day: date) -> date:
+    """Retorna o último dia útil anterior, ignorando sábado e domingo."""
+    return _business_day(day - timedelta(days=1))
+
+
+def is_overdue(due_date: date, today: date) -> bool:
+    """O prazo só vence após terminar o dia civil definido no Notion."""
+    return today > due_date
 
 
 def _business_days_since(start: date, end: date) -> int:
@@ -45,17 +57,23 @@ def _has_approval_evidence(latest_comment: Comment | None) -> bool:
     return any(term in text for term in positive)
 
 
-def audit(records: list[Record], today: date | None = None) -> AuditReport:
-    today = today or date.today()
+def audit(records: list[Record], today: date | None = None, progress_day: date | None = None) -> AuditReport:
+    today = today or datetime.now(LOCAL_TIMEZONE).date()
+    progress_day = progress_day or today
     findings: list[Finding] = []
     for record in records:
-        if record.source == "tasks" and record.status == "Em Progresso" and not has_comment_on(record, today):
+        if record.source == "tasks" and record.status == "Em Progresso" and not has_comment_on(record, progress_day):
+            progress_message = (
+                "Tarefa em progresso sem comentário de andamento no dia útil anterior."
+                if progress_day != today
+                else "Tarefa em progresso sem comentário de andamento no dia atual."
+            )
             findings.append(Finding(
                 record.source,
                 record.page_id,
                 record.title,
                 "progress_update_missing",
-                "Tarefa em progresso sem comentário de andamento no dia atual.",
+                progress_message,
                 recipient=record.owner,
                 url=record.page_url,
             ))
@@ -73,7 +91,7 @@ def audit(records: list[Record], today: date | None = None) -> AuditReport:
             findings.append(Finding(record.source, record.page_id, record.title, "due_date_missing", "Tarefa em status controlado sem prazo."))
         if record.status == "Para ser aprovada" and record.approver_count < 1:
             findings.append(Finding(record.source, record.page_id, record.title, "approver_missing", "Tarefa aguardando aprovação sem pelo menos um aprovador."))
-        if record.due_date and record.due_date < today and record.status not in {"Feito", "Bloqueada"}:
+        if record.due_date and is_overdue(record.due_date, today) and record.status not in {"Feito", "Bloqueada"}:
             findings.append(Finding(record.source, record.page_id, record.title, "overdue", "Prazo vencido para tarefa ainda não concluída."))
         recipient = record.owner
         rule = "stale"

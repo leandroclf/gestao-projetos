@@ -194,6 +194,54 @@ class ManagementReportTest(unittest.TestCase):
         self.assertIn("Itens críticos: 0", message)
         self.assertIn("Nenhuma intervenção gerencial", message)
 
+    def test_daily_summary_groups_compliant_work_by_front_and_excludes_alerted_items(self) -> None:
+        project = Record(
+            source="projects", page_id="project-ia", title="Plataforma IA", status="Doing",
+            area="IA", priority="P1", page_url="https://www.notion.so/project-ia",
+        )
+        clean_task = Record(
+            source="tasks", page_id="task-clean", title="Validar protótipo local", status="Em Progresso",
+            owner="Rafael", project_id="project-ia", area="IA", priority="P1",
+            page_url="https://www.notion.so/task-clean",
+            comments=(Comment(date(2026, 9, 18), "Executar validação final e registrar evidências."),),
+        )
+        alerted_task = Record(
+            source="tasks", page_id="task-alerted", title="Tarefa bloqueada", status="Bloqueada",
+            owner="Cesar", project_id="project-ia", area="IA", page_url="https://www.notion.so/task-alerted",
+        )
+        done_task = Record(
+            source="tasks", page_id="task-done", title="Preparar ambiente local", status="Feito",
+            area="IA", updated_at=date(2026, 9, 17), page_url="https://www.notion.so/task-done",
+        )
+        backlog = Record(
+            source="tasks", page_id="task-backlog", title="Avaliar nova integração", status="Backlog",
+            area="Directs", priority="P1", page_url="https://www.notion.so/task-backlog",
+        )
+        report = AuditReport(
+            records=[project, clean_task, alerted_task, done_task, backlog],
+            findings=[Finding("tasks", "task-alerted", alerted_task.title, "blocked_follow_up", "Desbloquear.")],
+        )
+
+        message = render_management_summary(report, "manager-1")
+
+        self.assertIn("*Visão gerencial diária*", message)
+        self.assertIn("Atividades sem pendências críticas", message)
+        self.assertIn("IA", message)
+        self.assertIn("Validar protótipo local", message)
+        self.assertIn("Preparar ambiente local", message)
+        self.assertIn("Avaliar nova integração", message)
+        self.assertEqual(1, message.count("Tarefa bloqueada"))
+        self.assertIn("Próximos passos", message)
+        self.assertIn("foco do ciclo atual", message)
+
+    def test_daily_summary_marks_missing_objective_data_without_inventing_sprint(self) -> None:
+        task = Record(source="tasks", page_id="task-1", title="Entrega", status="Em Progresso", area="InterJus")
+
+        message = render_management_summary(AuditReport(records=[task]), "manager-1")
+
+        self.assertIn("derivada dos registros disponíveis", message)
+        self.assertIn("Sprint oficial: não informada no Notion", message)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -74,6 +74,10 @@ class AlertingTest(unittest.TestCase):
         self.assertEqual({"progress_update_missing"}, progress_update_rules(4))
         self.assertEqual(set(), progress_update_rules(5))
 
+    def test_morning_schedule_checks_previous_day_without_escalation_rule(self) -> None:
+        self.assertIn("progress_update_missing", scheduled_rules(0))
+        self.assertNotIn("progress_update_escalated", scheduled_rules(0))
+
     def test_progress_update_alert_has_specific_label_and_category(self) -> None:
         report = AuditReport(
             records=[Record(source="tasks", page_id="1", title="Sem andamento", status="Em Progresso", owner="Rafael", page_url="https://www.notion.so/1")],
@@ -83,7 +87,7 @@ class AlertingTest(unittest.TestCase):
         self.assertIn("Acompanhamento em progresso sem comentário do dia", alert.message)
         self.assertEqual("progress", alert.category)
 
-    def test_morning_escalation_is_sent_only_after_previous_afternoon_alert(self) -> None:
+    def test_morning_schedule_does_not_create_critical_progress_escalation(self) -> None:
         report = AuditReport(
             records=[Record(source="tasks", page_id="1", title="Sem andamento", status="Em Progresso", owner="Rafael", page_url="https://www.notion.so/1")],
             findings=[Finding("tasks", "1", "Sem andamento", "progress_update_missing", "Tarefa em progresso sem comentário de andamento no dia atual.")],
@@ -94,14 +98,12 @@ class AlertingTest(unittest.TestCase):
             publish = lambda message, thread: sent.append(message)
             send_pending_alerts(report, state_path, publish, thread_key="andamento", rules={"progress_update_missing"}, today=date(2026, 9, 15))
 
-            report.findings = []
-            report.records[0] = Record(source="tasks", page_id="1", title="Sem andamento", status="Em Progresso", owner="Rafael", page_url="https://www.notion.so/1")
             send_pending_alerts(report, state_path, publish, thread_key="geral", rules=scheduled_rules(1), digest=True, today=date(2026, 9, 16))
 
             self.assertEqual(2, len(sent))
-            self.assertIn("Pendência crítica de andamento", sent[-1])
+            self.assertNotIn("Pendência crítica de andamento", sent[-1])
 
-    def test_current_day_comment_prevents_afternoon_and_morning_escalation(self) -> None:
+    def test_current_day_comment_prevents_afternoon_and_next_morning_progress_alert(self) -> None:
         report = AuditReport(
             records=[Record(source="tasks", page_id="1", title="Atualizada", status="Em Progresso", owner="Rafael", comments=(Comment(date(2026, 9, 16)),), page_url="https://www.notion.so/1")],
             findings=[],

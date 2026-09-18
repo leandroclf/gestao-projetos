@@ -1,4 +1,5 @@
 from .alerting import DISABLED_ALERT_RULES
+from datetime import date
 from .models import AuditReport, Comment, Finding, Record, latest_comment
 from .service import (
     REPORT_COLTEC_COMPLETED_STATUSES,
@@ -28,6 +29,9 @@ CRITICAL_FINDING_RULES = {
     "approver_missing",
     "urgent_without_project",
 }
+COMPLETED_STATUSES = REPORT_COLTEC_COMPLETED_STATUSES | {"Feito", "Done", "Concluído", "Concluída"}
+BACKLOG_STATUSES = {"Backlog", "Inbox", "Ready", "A Fazer", "To Do"}
+PRIORITY_ORDER = {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
 
 
 def _active(record: Record) -> bool:
@@ -77,6 +81,88 @@ def _active_structure_lines(records: list[Record], max_orphans: int = 5) -> list
 def _finding_count(findings: list[Finding], rules: set[str]) -> int:
     """Conta registros distintos atingidos por pelo menos uma regra."""
     return len({finding.page_id for finding in findings if finding.rule in rules})
+
+
+def _front_label(record: Record, projects_by_page: dict[str, Record]) -> str:
+    return record.area or projects_by_page.get(record.project_id, Record("", "", "")).area or "Frente não identificada"
+
+
+def _planning_key(record: Record) -> tuple:
+    return (
+        PRIORITY_ORDER.get(record.priority.upper(), 9),
+        record.due_date or date.max,
+        record.title.casefold(),
+    )
+
+
+def _daily_management_lines(records: list[Record], findings: list[Finding], max_items: int = 5) -> list[str]:
+    """Gera a visão informativa diária com dados existentes, sem inventar sprint ou objetivo."""
+    projects_by_page = {record.page_id: record for record in records if record.source == "projects"}
+    finding_pages = {finding.page_id for finding in findings}
+    active = [record for record in records if _active(record)]
+    compliant = [record for record in active if record.page_id not in finding_pages]
+    completed = sorted(
+        [record for record in records if record.status in COMPLETED_STATUSES and record.updated_at],
+        key=lambda record: (record.updated_at, record.title.casefold()),
+        reverse=True,
+    )[:max_items]
+    backlog = sorted(
+        [record for record in records if record.status in BACKLOG_STATUSES and record.page_id not in finding_pages],
+        key=_planning_key,
+    )[:max_items]
+
+    lines = [
+        "*Visão gerencial diária*",
+        f"Atividades sem pendências críticas ou alertas: {len(compliant)} de {len(active)} registros ativos.",
+        "Esta visão é derivada dos registros disponíveis no Notion; ausência de dados não representa um objetivo inventado.",
+        "",
+        "*Andamento por frente*",
+    ]
+    by_front: dict[str, list[Record]] = {}
+    for record in compliant:
+        if record.source in {"projects", "tasks"}:
+            by_front.setdefault(_front_label(record, projects_by_page), []).append(record)
+    if by_front:
+        for front in sorted(by_front):
+            front_records = sorted(by_front[front], key=_planning_key)
+            projects = sum(record.source == "projects" for record in front_records)
+            tasks = sum(record.source == "tasks" for record in front_records)
+            lines.append(f"- {front}: {projects} projeto(s), {tasks} tarefa(s) em conformidade")
+            lines.append(f"  Objetivo inferido da frente: avançar {front_records[0].title} conforme status, prioridade e próximos passos disponíveis.")
+            for record in front_records[:2]:
+                lines.append(f"  - {record.title} — {record.status}")
+    else:
+        lines.append("Nenhum projeto ou tarefa em conformidade foi encontrado.")
+
+    lines.extend(["", "*Atividades concluídas ou avanços relevantes*"])
+    if completed:
+        lines.extend(f"- {record.title} — concluído/atualizado em {_date(record.updated_at)}" for record in completed)
+    else:
+        lines.append("Nenhuma atividade concluída recente foi identificada nos registros disponíveis.")
+
+    lines.extend(["", "*Próximos passos e foco do ciclo atual*"])
+    next_steps = sorted(
+        [record for record in compliant if record.source in {"projects", "tasks"} and record.status not in COMPLETED_STATUSES],
+        key=_planning_key,
+    )[:max_items]
+    if next_steps:
+        for record in next_steps:
+            latest = latest_comment(record)
+            next_step = _comment_text(latest) if latest else "Próximo passo não documentado nos comentários."
+            lines.append(f"- {record.title} ({_front_label(record, projects_by_page)}) — {next_step}")
+    else:
+        lines.append("Nenhum próximo passo ativo foi identificado.")
+    lines.append("Sprint oficial: não informada no Notion; o foco acima é derivado de status, prioridade, prazo e comentários.")
+
+    lines.extend(["", "*Backlog e prioridades para o próximo planejamento*"])
+    if backlog:
+        lines.extend(
+            f"- {record.title} ({_front_label(record, projects_by_page)}) — {record.status}; prioridade: {record.priority or 'não informada'}"
+            for record in backlog
+        )
+    else:
+        lines.append("Nenhum item de backlog foi identificado nos registros disponíveis.")
+    return lines
 
 
 def _date(value) -> str:
@@ -165,6 +251,7 @@ def render_management_summary(report: AuditReport, manager_id: str, max_exceptio
         f"Atualizações pendentes: {_finding_count(relevant_findings, {'stale', 'progress_update_missing'})}",
         f"Templates incompletos: {_finding_count(relevant_findings, {'template_incomplete'})}",
     ])
+    lines.extend(["", *_daily_management_lines(report.records, report.findings)])
     if not unique_critical:
         lines.extend(["", "✅ situação sob controle", "", "Nenhuma intervenção gerencial foi identificada no ciclo."])
         return "\n".join(lines)

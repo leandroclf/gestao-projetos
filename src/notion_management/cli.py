@@ -3,6 +3,7 @@ import json
 from datetime import datetime
 from dataclasses import asdict
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from .alerting import DEFAULT_THREAD_KEY, INTRO_MESSAGE, _read_state, pending_alerts, progress_update_rules, scheduled_rules, send_pending_alerts, validation_message
 from .config import Settings
@@ -10,6 +11,10 @@ from .gchat import build_visual_payload, send_webhook
 from .management_report import MANAGEMENT_THREAD_KEY, render_management_report, render_management_summary, split_management_report
 from .snapshot import save_snapshot
 from .service import render_markdown, run_audit
+from .quality import previous_business_day
+
+
+LOCAL_TIMEZONE = ZoneInfo("America/Sao_Paulo")
 
 
 def main() -> int:
@@ -63,7 +68,13 @@ def main() -> int:
         for key, value in sorted(deliveries.items()):
             print(f"{value.get('status', 'unknown')}\t{key}")
         return 2 if any(value.get("status") == "unknown" for value in deliveries.values()) else 0
-    report = run_audit(settings)
+    now = datetime.now(LOCAL_TIMEZONE)
+    progress_day = None
+    if getattr(args, "schedule", False):
+        progress_day = previous_business_day(now.date())
+    elif getattr(args, "progress_schedule", False):
+        progress_day = now.date()
+    report = run_audit(settings, progress_day=progress_day)
     if args.command == "audit":
         if args.json:
             print(json.dumps(asdict(report), ensure_ascii=False, default=str, indent=2))
@@ -96,7 +107,7 @@ def main() -> int:
             def publish_with_category(message: str, key: str, category: str) -> None:
                 for part in split_management_report(message):
                     send_webhook(settings.gchat_webhook_url, part, thread_key=key, payload=build_visual_payload(part, settings.gchat_project_logo_url, "Alerta — Gestão de Projetos", category))
-            run_rules = scheduled_rules(datetime.now().weekday()) if args.schedule else None
+            run_rules = scheduled_rules(now.weekday()) if args.schedule else None
             sent = send_pending_alerts(report, Path(settings.gchat_alert_state_file), lambda message, key: publish_with_category(message, key, "general"), thread_key=thread_key, rules=run_rules, send_with_category=publish_with_category, digest=args.schedule)
             parts = split_management_report(render_management_summary(report, settings.manager_id))
             for part in parts:
@@ -105,9 +116,9 @@ def main() -> int:
     else:
         rules = {rule.strip() for rule in args.rules.split(",") if rule.strip()} or None
         if args.schedule:
-            rules = scheduled_rules(datetime.now().weekday())
+            rules = scheduled_rules(now.weekday())
         if args.progress_schedule:
-            rules = progress_update_rules(datetime.now().weekday())
+            rules = progress_update_rules(now.weekday())
         alerts = pending_alerts(report, rules=rules)
         if not alerts:
             print("Nenhuma pendência acionável no escopo da equipe de Integrações.")

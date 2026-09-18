@@ -2,7 +2,7 @@
 Description=Agendamento do alerta de andamento diário das tarefas em progresso
 
 [Timer]
-OnCalendar=Mon..Fri *-*-* 16:30:00 America/Sao_Paulo
+OnCalendar=Mon..Fri *-*-* 17:00:00 America/Sao_Paulo
 Persistent=true
 Unit=gestao-projetos-andamento.service
 

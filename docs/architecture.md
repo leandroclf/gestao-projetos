@@ -32,6 +32,7 @@ As regras de qualidade de tarefa são deliberadamente restritas aos status ativo
 | --- | --- |
 | Dono | `Responsável` obrigatório nos quatro status controlados. |
 | Prazo | `Prazo` obrigatório nos quatro status controlados. |
+| Vencimento | O prazo permanece válido durante todo o dia definido; `overdue` só é gerado a partir do dia seguinte, no fuso `America/Sao_Paulo`. |
 | Aprovação | `Aprovadora` deve conter ao menos uma pessoa em `Para ser aprovada`. |
 | Atualização | Preferencialmente todos os dias úteis e, obrigatoriamente, no máximo a cada dois dias úteis até a conclusão; o registro deve estar nos comentários da tarefa. |
 | Projeto | Relação `Projeto` é recomendada, mas não obrigatória. |
@@ -77,7 +78,7 @@ Quando uma tarefa está em `Para ser aprovada`, o relatório e os alertas exibem
 
 A seção de menções identifica menções estruturadas ao ID de `NOTION_MANAGER_ID` nos comentários. As sugestões de pauta são candidatas geradas a partir de achados de bloqueio, aprovação, prazo, atualização ou menção ao gestor. Os registros da COLTEC sob responsabilidade do gestor são apresentados como candidatos a desdobramento em projeto/tarefa após confirmação da decisão. Essas sugestões não escrevem no Notion e não criam demandas automaticamente.
 
-O webhook gerencial recebe um resumo executivo em uma thread própria (`gestao-gerencial`). O resumo apresenta indicadores e até três exceções críticas; o relatório completo continua disponível na saída local e no Notion. As mensagens são publicadas com texto de fallback e cards `cardsV2`, usando cabeçalho, logo opcional, cores por categoria e botão para abrir o primeiro link do registro. O webhook continua limitado ao espaço em que foi criado e não recebe respostas interativas.
+O webhook gerencial recebe um resumo executivo em uma thread própria (`gestao-gerencial`). O resumo apresenta indicadores, uma visão diária de registros sem achados, andamento agrupado por frente, concluídos/avanços, próximos passos, backlog, prioridades e foco inferido do ciclo, além de até três exceções críticas; o relatório completo continua disponível na saída local e no Notion. Sprint e objetivo só são exibidos quando puderem ser derivados dos registros existentes, sem inventar dados ausentes. As mensagens são publicadas com texto de fallback e cards `cardsV2`, usando cabeçalho, logo opcional, cores por categoria e botão para abrir o primeiro link do registro. O webhook continua limitado ao espaço em que foi criado e não recebe respostas interativas.
 
 O estado local de alertas mantém, por página e regra, o ciclo de vida do achado. A primeira ocorrência é `aberto`, repetições ficam `mantido`, a ausência em uma coleta posterior marca `resolvido` e o retorno de um achado resolvido marca `reaberto`. Esse histórico apoia a redução de ruído e futuras métricas de recuperação, sem substituir o histórico oficial dos comentários no Notion.
 

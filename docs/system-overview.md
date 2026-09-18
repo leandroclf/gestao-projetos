@@ -89,10 +89,10 @@ Os achados carregam fonte, página, título, regra, mensagem, destinatário e li
 | `owner_missing` | Tarefa ativa sem responsável | Responsável não identificado |
 | `due_date_missing` | Tarefa ativa sem prazo | Responsável da tarefa |
 | `approver_missing` | `Para ser aprovada` sem `Aprovadora` | Responsável da tarefa |
-| `overdue` | Prazo vencido, exceto tarefa bloqueada | Responsável da tarefa |
+| `overdue` | Prazo vencido somente a partir do dia seguinte à data definida, exceto tarefa bloqueada | Responsável da tarefa |
 | `stale` | Atualização ausente ou com mais de dois dias úteis | Responsável da tarefa |
 | `progress_update_missing` | Tarefa `Em Progresso` sem comentário criado no dia corrente | Responsável da tarefa |
-| `progress_update_escalated` | Cobrança das 16h30 do último dia útil sem comentário no dia corrente | Responsável da tarefa |
+| `progress_update_missing` | Pela manhã, tarefa em progresso sem comentário no último dia útil; às 17h, sem comentário no dia atual | Responsável da tarefa |
 | `approval_update_missing` | Aprovação sem evidência positiva ou fora da cadência | Aprovador(es) |
 | `blocked_follow_up` | Bloqueio sem avanço recente | Último membro mencionado; fallback para responsável |
 | `urgent_without_project` | Solicitação P0 ativa sem projeto técnico | Desabilitado no ciclo atual |
@@ -113,7 +113,7 @@ Status concluídos (`Feito`, `Done`, `Concluído` e `Concluída`) não geram ach
 
 ### Relatório gerencial
 
-`report` reúne tarefas ativas, projetos ativos, COLTEC não concluído do gestor, solicitações ativas, comentários recentes com autor, menções estruturadas ao gestor, apoio à pauta e candidatos a desdobramento. Sugestões não criam registros nem alteram o Notion.
+`report` reúne tarefas ativas, projetos ativos, COLTEC não concluído do gestor, solicitações ativas, comentários recentes com autor, menções estruturadas ao gestor, apoio à pauta e candidatos a desdobramento. A mensagem gerencial também resume registros sem achados, andamento por frente, concluídos/avanços, próximos passos, backlog, prioridades e foco inferido do ciclo. Sugestões não criam registros nem alteram o Notion.
 
 O relatório é dividido em blocos de até 8.000 caracteres e publicado, quando solicitado, exclusivamente em `GCHAT_GERENCIAL_WEBHOOK_URL`, na thread `gestao-gerencial`.
 
@@ -246,7 +246,7 @@ flowchart TD
     RELEASE --> END([Fim])
 ```
 
-O estado fica em `GCHAT_ALERT_STATE_FILE`, padrão `reports/gchat-alert-state.json`. O sistema mantém `deliveries` além do fingerprint: um timeout pode ocorrer após aceitação do Google Chat, portanto não é marcado silenciosamente como sucesso. O `--schedule` seleciona diariamente `overdue`, `stale`, `approval_update_missing` e `blocked_follow_up`, acrescentando `due_date_missing` às terças e quintas e a escalada `progress_update_escalated` quando houver cobrança efetiva no ciclo anterior. O `--progress-schedule` seleciona `progress_update_missing` em dias úteis para o ciclo separado das 16h30 e registra as tarefas cobradas para a escalada do próximo ciclo.
+O estado fica em `GCHAT_ALERT_STATE_FILE`, padrão `reports/gchat-alert-state.json`. O sistema mantém `deliveries` além do fingerprint: um timeout pode ocorrer após aceitação do Google Chat, portanto não é marcado silenciosamente como sucesso. O `--schedule` seleciona diariamente `overdue`, `stale`, `approval_update_missing`, `blocked_follow_up` e `progress_update_missing`; às terças e quintas acrescenta `due_date_missing`, usando como referência de andamento o último dia útil. O `--progress-schedule` seleciona `progress_update_missing` em dias úteis, usando como referência o dia atual, no ciclo separado das 17h.
 
 ## 7. Relatório gerencial
 

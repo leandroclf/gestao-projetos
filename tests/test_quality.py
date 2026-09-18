@@ -2,10 +2,19 @@ import unittest
 from datetime import date, timedelta
 
 from notion_management.models import Comment, Record
-from notion_management.quality import audit
+from notion_management.quality import audit, is_overdue, previous_business_day
 
 
 class QualityTest(unittest.TestCase):
+    def test_due_date_remains_valid_until_end_of_due_date(self) -> None:
+        self.assertFalse(is_overdue(date(2026, 9, 18), date(2026, 9, 18)))
+
+    def test_due_date_is_overdue_from_next_calendar_day(self) -> None:
+        self.assertTrue(is_overdue(date(2026, 9, 18), date(2026, 9, 19)))
+
+    def test_previous_business_day_skips_weekend(self) -> None:
+        self.assertEqual(date(2026, 9, 18), previous_business_day(date(2026, 9, 21)))
+
     def test_flags_blocked_task_with_stale_update_but_not_overdue_alert(self) -> None:
         report = audit(
             [Record(source="tasks", page_id="1", title="Integração", status="Bloqueada", due_date=date.today() - timedelta(days=1), updated_at=date.today() - timedelta(days=6))]
@@ -58,22 +67,39 @@ class QualityTest(unittest.TestCase):
         ], today=date(2026, 9, 13))
         self.assertNotIn("stale", {finding.rule for finding in report.findings})
 
-    def test_in_progress_task_requires_comment_on_current_day(self) -> None:
+    def test_morning_progress_check_requires_comment_on_previous_business_day(self) -> None:
         report = audit([
             Record(
-                source="tasks", page_id="1", title="Sem andamento", status="Em Progresso",
+                source="tasks", page_id="1", title="Atualizada ontem", status="Em Progresso",
                 owner="Pessoa", due_date=date(2026, 9, 15), updated_at=date(2026, 9, 15),
                 comments=(Comment(date(2026, 9, 14), "Ontem avancei."),),
             ),
             Record(
-                source="tasks", page_id="2", title="Com andamento", status="Em Progresso",
+                source="tasks", page_id="2", title="Sem andamento ontem", status="Em Progresso",
                 owner="Pessoa", due_date=date(2026, 9, 15), updated_at=date(2026, 9, 15),
+                comments=(Comment(date(2026, 9, 13), "Sexta avancei."),),
+            ),
+        ], today=date(2026, 9, 15), progress_day=date(2026, 9, 14))
+        findings = {(finding.page_id, finding.rule) for finding in report.findings}
+        self.assertNotIn(("1", "progress_update_missing"), findings)
+        self.assertIn(("2", "progress_update_missing"), findings)
+
+    def test_afternoon_progress_check_requires_comment_on_current_day(self) -> None:
+        report = audit([
+            Record(
+                source="tasks", page_id="1", title="Atualizada hoje", status="Em Progresso",
+                owner="Pessoa", due_date=date(2026, 9, 15),
                 comments=(Comment(date(2026, 9, 15), "Hoje avancei."),),
             ),
-        ], today=date(2026, 9, 15))
+            Record(
+                source="tasks", page_id="2", title="Sem andamento hoje", status="Em Progresso",
+                owner="Pessoa", due_date=date(2026, 9, 15),
+                comments=(Comment(date(2026, 9, 14), "Ontem avancei."),),
+            ),
+        ], today=date(2026, 9, 15), progress_day=date(2026, 9, 15))
         findings = {(finding.page_id, finding.rule) for finding in report.findings}
-        self.assertIn(("1", "progress_update_missing"), findings)
-        self.assertNotIn(("2", "progress_update_missing"), findings)
+        self.assertNotIn(("1", "progress_update_missing"), findings)
+        self.assertIn(("2", "progress_update_missing"), findings)
 
     def test_old_approval_evidence_does_not_suppress_alert_forever(self) -> None:
         report = audit([Record(

@@ -140,7 +140,7 @@ def _normalize(source: str, page: dict[str, Any], status_name: str, owner_name: 
     )
 
 
-def run_audit(settings: Settings, today: date | None = None, run_id: str | None = None) -> AuditReport:
+def run_audit(settings: Settings, today: date | None = None, progress_day: date | None = None, run_id: str | None = None) -> AuditReport:
     settings.require_notion_token()
     started_at = datetime.now(timezone.utc)
     run_id = run_id or uuid4().hex
@@ -202,7 +202,7 @@ def run_audit(settings: Settings, today: date | None = None, run_id: str | None 
         }
         if source_errors:
             source_results[source]["error"] = ", ".join(sorted(source_errors))
-    report = audit(records, today=today)
+    report = audit(records, today=today, progress_day=progress_day)
     report.excluded_by_source = excluded_by_source
     report.run_id = run_id
     report.started_at = started_at

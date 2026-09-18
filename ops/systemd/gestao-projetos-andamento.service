@@ -3,8 +3,8 @@ Description=Alerta de andamento diário das tarefas em progresso
 
 [Service]
 Type=oneshot
-WorkingDirectory=/opt/gestao-projetos
+WorkingDirectory=/home/leandro/IdeaProjects/lfsolucoes/gestao-projetos
 Environment=PYTHONPATH=src
-EnvironmentFile=-/opt/gestao-projetos/.env
+EnvironmentFile=-/home/leandro/IdeaProjects/lfsolucoes/gestao-projetos/.env
 ExecStart=/usr/bin/flock -n /tmp/gestao-projetos-andamento.lock /usr/bin/python3 -m notion_management notify --send --progress-schedule --thread-key gestao-integracoes-andamento
 TimeoutStartSec=300
