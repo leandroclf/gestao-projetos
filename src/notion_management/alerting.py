@@ -10,7 +10,7 @@ from typing import Callable
 
 import fcntl
 
-from .models import AuditReport, Finding, Record
+from .models import AuditReport, Finding, Record, has_comment_on
 
 
 ALERT_LABELS = {
@@ -184,10 +184,6 @@ def _previous_business_day(day: date) -> date:
     return previous
 
 
-def _has_comment_on(record: Record, day: date) -> bool:
-    return any(comment.created_at == day for comment in record.comments)
-
-
 def _with_morning_escalations(report: AuditReport, state: dict, rules: set[str] | None, today: date) -> AuditReport:
     """Adiciona a escalada matinal somente para cobranças emitidas no ciclo anterior."""
     if not rules or "progress_update_missing" in rules or "progress_update_escalated" not in rules:
@@ -210,7 +206,7 @@ def _with_morning_escalations(report: AuditReport, state: dict, rules: set[str] 
         and page_id in records
         and records[page_id].source == "tasks"
         and records[page_id].status == "Em Progresso"
-        and not _has_comment_on(records[page_id], today)
+        and not has_comment_on(records[page_id], today)
     ]
     if not escalations:
         return report
@@ -315,7 +311,7 @@ def send_pending_alerts(report: AuditReport, state_path: Path, send: Callable[[s
                     progress_alerts[finding.page_id] = today.isoformat()
             for page_id in list(progress_alerts):
                 record = next((item for item in report.records if item.page_id == page_id), None)
-                if record and (record.status != "Em Progresso" or _has_comment_on(record, today)):
+                if record and (record.status != "Em Progresso" or has_comment_on(record, today)):
                     del progress_alerts[page_id]
         _write_state(state_path, state)
         return sent

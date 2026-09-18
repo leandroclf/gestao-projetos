@@ -50,6 +50,23 @@ class Finding:
     url: str = ""
 
 
+def latest_comment(record: "Record") -> Comment | None:
+    """Comentário mais recente, com desempate por timestamp, data e ordem original."""
+    return max(
+        enumerate(record.comments),
+        key=lambda item: (
+            item[1].created_at_time.timestamp() if item[1].created_at_time else 0,
+            item[1].created_at.toordinal(),
+            item[0],
+        ),
+        default=(0, None),
+    )[1]
+
+
+def has_comment_on(record: "Record", day: date) -> bool:
+    return any(comment.created_at == day for comment in record.comments)
+
+
 @dataclass
 class AuditReport:
     records: list[Record] = field(default_factory=list)

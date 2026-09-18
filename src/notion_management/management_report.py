@@ -1,5 +1,5 @@
 from .alerting import DISABLED_ALERT_RULES
-from .models import AuditReport, Comment, Finding, Record
+from .models import AuditReport, Comment, Finding, Record, latest_comment
 from .service import (
     REPORT_COLTEC_COMPLETED_STATUSES,
     REPORT_PROJECT_STATUSES,
@@ -94,10 +94,6 @@ def _comment_author(comment: Comment | None) -> str:
     return (comment.author_name if comment and comment.author_name else "Autor não identificado")
 
 
-def _latest(record: Record) -> Comment | None:
-    return max(enumerate(record.comments), key=lambda item: (item[1].created_at_time.timestamp() if item[1].created_at_time else 0, item[1].created_at.toordinal(), item[0]), default=(0, None))[1]
-
-
 def _mentions_manager(record: Record, manager_id: str) -> list[Comment]:
     normalized = manager_id.replace("-", "").lower()
     return [
@@ -107,7 +103,7 @@ def _mentions_manager(record: Record, manager_id: str) -> list[Comment]:
 
 
 def _record_lines(record: Record, include_due_date: bool = False, prefix: str = "") -> list[str]:
-    latest = _latest(record)
+    latest = latest_comment(record)
     owner = record.owner or "Responsável não identificado"
     lines = [
         f"- {prefix}{record.title} — {record.page_url}",
