@@ -45,6 +45,8 @@ def main() -> int:
             "NOTION_PROJECTS_DATA_SOURCE_ID": settings.projects_id,
             "NOTION_COLTEC_DATA_SOURCE_ID": settings.coltec_id,
             "NOTION_REQUESTS_DATA_SOURCE_ID": settings.requests_id,
+            "NOTION_INTEGRATIONS_AREA_ID": settings.integrations_area_id,
+            "NOTION_MANAGER_ID": settings.manager_id,
         }
         missing = [name for name, value in required.items() if not value]
         if missing:
