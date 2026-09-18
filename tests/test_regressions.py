@@ -75,6 +75,37 @@ class RegressionTest(unittest.TestCase):
         self.assertEqual("failed", report.source_results["projects"]["status"])
         self.assertEqual("run-x", report.run_id)
 
+    def test_run_audit_counts_records_dropped_by_page_level_error(self):
+        class FakeClient:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def query_data_source(self, source_id):
+                if source_id != "tasks":
+                    return []
+                return [{
+                    "id": "p1", "last_edited_time": "2026-09-10T00:00:00.000Z",
+                    "properties": {
+                        "Title": {"type": "title", "title": [{"plain_text": "Tarefa"}]},
+                        "Status": {"status": {"name": "Em Progresso"}},
+                        "Responsável": {"people": [{"id": "manager", "name": "Gestor"}]},
+                    },
+                }]
+
+            def list_comments(self, page_id):
+                raise RuntimeError("timeout")
+
+            def list_block_children(self, page_id):
+                return []
+
+        settings = Settings("token", "2025-09-03", "", "", "tasks", "projects", "coltec", "requests", "area", "manager", (), "reports")
+        with patch("notion_management.service.NotionClient", FakeClient):
+            report = run_audit(settings, today=date(2026, 9, 15), run_id="run-y")
+        self.assertFalse(report.complete)
+        self.assertEqual(1, report.source_results["tasks"]["dropped"])
+        self.assertEqual(0, report.source_results["tasks"]["included"])
+        self.assertEqual([], report.records)
+
     def test_deliveries_command_reports_unknown_delivery(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_path = Path(tmp) / "state.json"

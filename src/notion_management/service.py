@@ -163,7 +163,8 @@ def run_audit(settings: Settings, today: date | None = None, run_id: str | None 
             continue
         included = 0
         excluded = 0
-        source_error = ""
+        dropped = 0
+        source_errors: set[str] = set()
         for row in rows:
             record = _normalize(source, row, status, owner, due, project)
             report_statuses = REPORT_TASK_STATUSES if source == "tasks" else REPORT_PROJECT_STATUSES
@@ -184,16 +185,23 @@ def run_audit(settings: Settings, today: date | None = None, run_id: str | None 
                         record = replace(record, template_missing=missing_sections(source, row.get("properties", {}), blocks))
                 except Exception as exc:
                     complete = False
-                    source_error = type(exc).__name__
+                    dropped += 1
+                    source_errors.add(type(exc).__name__)
                     continue
                 records.append(record)
                 included += 1
             else:
                 excluded_by_source[source] = excluded_by_source.get(source, 0) + 1
                 excluded += 1
-        source_results[source] = {"status": "partial" if source_error else "ok", "queried": len(rows), "included": included, "excluded": excluded}
-        if source_error:
-            source_results[source]["error"] = source_error
+        source_results[source] = {
+            "status": "partial" if source_errors else "ok",
+            "queried": len(rows),
+            "included": included,
+            "excluded": excluded,
+            "dropped": dropped,
+        }
+        if source_errors:
+            source_results[source]["error"] = ", ".join(sorted(source_errors))
     report = audit(records, today=today)
     report.excluded_by_source = excluded_by_source
     report.run_id = run_id
