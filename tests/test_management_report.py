@@ -164,6 +164,29 @@ class ManagementReportTest(unittest.TestCase):
         self.assertIn("Tarefas sem vínculo", message)
         self.assertIn("Tarefa sem projeto", message)
 
+    def test_summary_excludes_phase_one_disabled_rules_from_critical_and_quality_counts(self) -> None:
+        p0_without_project = Record(
+            source="requests", page_id="p0", title="Demanda urgente", status="Inbox",
+            owner="Rafael", priority="P0", page_url="https://www.notion.so/p0",
+        )
+        incomplete_template = Record(
+            source="tasks", page_id="task-template", title="Tarefa sem template", status="Em Progresso",
+            owner="Cesar", page_url="https://www.notion.so/task-template",
+        )
+        report = AuditReport(
+            records=[p0_without_project, incomplete_template],
+            findings=[
+                Finding("requests", "p0", p0_without_project.title, "urgent_without_project", "Vincular projeto técnico."),
+                Finding("tasks", "task-template", incomplete_template.title, "template_incomplete", "Documentar template."),
+            ],
+        )
+
+        message = render_management_summary(report, "manager-1")
+
+        self.assertIn("Itens críticos: 0", message)
+        self.assertIn("Templates incompletos: 0", message)
+        self.assertNotIn("Demanda urgente", message)
+
     def test_empty_management_summary_reports_no_intervention(self) -> None:
         message = render_management_summary(AuditReport(), "manager-1")
 

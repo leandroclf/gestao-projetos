@@ -1,3 +1,4 @@
+from .alerting import DISABLED_ALERT_RULES
 from .models import AuditReport, Comment, Finding, Record
 from .service import (
     REPORT_COLTEC_COMPLETED_STATUSES,
@@ -133,7 +134,10 @@ def render_management_summary(report: AuditReport, manager_id: str, max_exceptio
     """Renderiza uma mensagem curta para decisão, sem substituir o relatório do Notion."""
     records = [record for record in report.records if _active(record) and record.source in {"tasks", "projects", "coltec", "requests"}]
     records_by_page = {record.page_id: record for record in records}
-    relevant_findings = [finding for finding in report.findings if finding.page_id in records_by_page]
+    relevant_findings = [
+        finding for finding in report.findings
+        if finding.page_id in records_by_page and finding.rule not in DISABLED_ALERT_RULES
+    ]
     blocked = sum(1 for finding in relevant_findings if finding.rule == "blocked_follow_up")
     overdue = sum(1 for finding in relevant_findings if finding.rule == "overdue")
     approvals = sum(1 for finding in relevant_findings if finding.rule in {"approval_update_missing", "approver_missing"})
