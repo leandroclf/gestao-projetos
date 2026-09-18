@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from .models import AuditReport, Finding, Record
+from .models import AuditReport, Comment, Finding, Record
 
 
 TASK_REVIEW_STATUSES = {"Em Progresso", "Bloqueada", "Para ser aprovada"}
@@ -28,8 +28,12 @@ def _business_days_since(start: date, end: date) -> int:
     return elapsed
 
 
+def _latest_comment(record: Record) -> Comment | None:
+    return max(enumerate(record.comments), key=lambda item: (item[1].created_at_time.timestamp() if item[1].created_at_time else 0, item[1].created_at.toordinal(), item[0]), default=(0, None))[1]
+
+
 def _latest_comment_date(record: Record) -> date | None:
-    latest = max(enumerate(record.comments), key=lambda item: (item[1].created_at_time.timestamp() if item[1].created_at_time else 0, item[1].created_at.toordinal(), item[0]), default=(0, None))[1]
+    latest = _latest_comment(record)
     return latest.created_at if latest else None
 
 
@@ -37,16 +41,16 @@ def _has_comment_on(record: Record, day: date) -> bool:
     return any(comment.created_at == day for comment in record.comments)
 
 
-def _has_approval_evidence(record: Record) -> bool:
+def _has_approval_evidence(latest_comment: Comment | None) -> bool:
+    """A evidência só vale enquanto for o comentário mais recente da aprovação."""
+    if not latest_comment:
+        return False
     positive = ("aprovado", "aprovada", "validado", "validada", "sucesso", "passou", "evidência positiva")
     negative = ("não realizado", "nao realizado", "não aprovado", "nao aprovado", "pendente", "reprovado", "reprovada", "falhou", "sem sucesso", "sem evidência", "sem evidencia")
-    for comment in record.comments:
-        text = comment.text.casefold()
-        if any(term in text for term in negative):
-            continue
-        if any(term in text for term in positive):
-            return True
-    return False
+    text = latest_comment.text.casefold()
+    if any(term in text for term in negative):
+        return False
+    return any(term in text for term in positive)
 
 
 def audit(records: list[Record], today: date | None = None) -> AuditReport:
@@ -87,8 +91,9 @@ def audit(records: list[Record], today: date | None = None) -> AuditReport:
             recipient = ", ".join(record.approver_names) or "Aprovador não identificado"
             rule = "approval_update_missing"
             message = "Aprovador deverá incluir evidências dos testes nos comentários e registrar como feito caso sucesso nos testes."
-            update_date = _latest_comment_date(record)
-            if update_date and _has_approval_evidence(record):
+            latest_comment = _latest_comment(record)
+            update_date = latest_comment.created_at if latest_comment else None
+            if _has_approval_evidence(latest_comment):
                 continue
         elif record.status == "Bloqueada":
             recipient = record.comment_recipient or record.owner

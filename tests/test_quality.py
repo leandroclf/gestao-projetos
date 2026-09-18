@@ -75,6 +75,17 @@ class QualityTest(unittest.TestCase):
         self.assertIn(("1", "progress_update_missing"), findings)
         self.assertNotIn(("2", "progress_update_missing"), findings)
 
+    def test_old_approval_evidence_does_not_suppress_alert_forever(self) -> None:
+        report = audit([Record(
+            source="tasks", page_id="1", title="Aprovação antiga", status="Para ser aprovada",
+            owner="Rafael", approver_names=("Leandro",), due_date=date(2026, 9, 1),
+            comments=(
+                Comment(date(2026, 8, 20), "Testes com sucesso, aprovado."),
+                Comment(date(2026, 8, 25), "Só reforçando o acompanhamento."),
+            ),
+        )], today=date(2026, 9, 13))
+        self.assertTrue(any(f.rule == "approval_update_missing" for f in report.findings))
+
     def test_approval_update_is_directed_to_approver_and_requires_evidence(self) -> None:
         report = audit([Record(source="tasks", page_id="1", title="Aprovação", status="Para ser aprovada", owner="Rafael", approver_names=("Leandro",), due_date=date.today())], today=date(2026, 9, 13))
         finding = next(finding for finding in report.findings if finding.rule == "approval_update_missing")
