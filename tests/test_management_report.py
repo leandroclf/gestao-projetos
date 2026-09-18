@@ -130,7 +130,39 @@ class ManagementReportTest(unittest.TestCase):
         self.assertIn("Itens críticos: 1", message)
         self.assertIn("Entrega bloqueada", message)
         self.assertIn("https://www.notion.so/blocked", message)
-        self.assertNotIn("Tarefa sem prazo", message)
+        self.assertIn("Tarefa sem prazo", message)
+        self.assertIn("*Risco operacional*", message)
+        self.assertIn("*Qualidade do fluxo*", message)
+        self.assertIn("Itens sem prazo: 1", message)
+        self.assertIn("Atualizações pendentes: 0", message)
+
+    def test_management_summary_explains_active_records_and_orphan_tasks(self) -> None:
+        project = Record(
+            source="projects", page_id="project-1", title="Projeto Atlas", status="Doing",
+        )
+        linked_task = Record(
+            source="tasks", page_id="task-1", title="Tarefa vinculada", status="Em Progresso",
+            project_id="project-1",
+        )
+        orphan_task = Record(
+            source="tasks", page_id="task-2", title="Tarefa sem projeto", status="Em Progresso",
+        )
+        request = Record(source="requests", page_id="request-1", title="Demanda", status="Inbox")
+        coltec = Record(source="coltec", page_id="coltec-1", title="Ação", status="Em andamento", owner_id="manager-1")
+
+        message = render_management_summary(
+            AuditReport(records=[project, linked_task, orphan_task, request, coltec]),
+            "manager-1",
+        )
+
+        self.assertIn("Projetos ativos: 1", message)
+        self.assertIn("Tarefas vinculadas a projetos: 1", message)
+        self.assertIn("Tarefas sem vínculo com projeto: 1", message)
+        self.assertIn("Demandas de clientes ativas: 1", message)
+        self.assertIn("COLTEC ativo sob responsabilidade: 1", message)
+        self.assertIn("Projeto Atlas: 1 tarefa(s)", message)
+        self.assertIn("Tarefas sem vínculo", message)
+        self.assertIn("Tarefa sem projeto", message)
 
     def test_empty_management_summary_reports_no_intervention(self) -> None:
         message = render_management_summary(AuditReport(), "manager-1")

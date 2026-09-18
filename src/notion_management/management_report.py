@@ -1,4 +1,4 @@
-from .models import AuditReport, Comment, Record
+from .models import AuditReport, Comment, Finding, Record
 from .service import (
     REPORT_COLTEC_COMPLETED_STATUSES,
     REPORT_PROJECT_STATUSES,
@@ -37,6 +37,45 @@ def _active(record: Record) -> bool:
     if record.source == "coltec":
         return record.status not in REPORT_COLTEC_COMPLETED_STATUSES
     return record.source == "requests" and record.status in REPORT_REQUEST_STATUSES
+
+
+def _active_structure_lines(records: list[Record], max_orphans: int = 5) -> list[str]:
+    """Resume a composição dos ativos e evidencia tarefas sem projeto."""
+    projects = [record for record in records if record.source == "projects"]
+    tasks = [record for record in records if record.source == "tasks"]
+    linked_tasks = [record for record in tasks if record.project_id]
+    orphan_tasks = [record for record in tasks if not record.project_id]
+    requests = [record for record in records if record.source == "requests"]
+    coltec = [record for record in records if record.source == "coltec"]
+
+    project_titles = {record.page_id: record.title for record in projects}
+    task_counts: dict[str, int] = {}
+    for task in linked_tasks:
+        project_name = project_titles.get(task.project_id, "Projeto vinculado não encontrado no recorte")
+        task_counts[project_name] = task_counts.get(project_name, 0) + 1
+
+    lines = [
+        "*Registros ativos por estrutura*",
+        f"Projetos ativos: {len(projects)}",
+        f"Tarefas vinculadas a projetos: {len(linked_tasks)}",
+        f"Tarefas sem vínculo com projeto: {len(orphan_tasks)}",
+        f"Demandas de clientes ativas: {len(requests)}",
+        f"COLTEC ativo sob responsabilidade: {len(coltec)}",
+    ]
+    if task_counts:
+        lines.append("Distribuição de tarefas vinculadas:")
+        lines.extend(f"- {name}: {count} tarefa(s)" for name, count in sorted(task_counts.items()))
+    if orphan_tasks:
+        lines.append("Tarefas sem vínculo — avaliar projeto relacionado:")
+        lines.extend(f"- {task.title}" for task in orphan_tasks[:max_orphans])
+        if len(orphan_tasks) > max_orphans:
+            lines.append(f"- ... e mais {len(orphan_tasks) - max_orphans} tarefa(s)")
+    return lines
+
+
+def _finding_count(findings: list[Finding], rules: set[str]) -> int:
+    """Conta registros distintos atingidos por pelo menos uma regra."""
+    return len({finding.page_id for finding in findings if finding.rule in rules})
 
 
 def _date(value) -> str:
@@ -110,7 +149,22 @@ def render_management_summary(report: AuditReport, manager_id: str, max_exceptio
         seen_pages.add(finding.page_id)
         unique_critical.append(finding)
 
-    lines = ["*Gestão de Integrações — resumo executivo*", "", f"Registros ativos: {len(records)}", f"Itens críticos: {len(unique_critical)}", f"Bloqueios relevantes: {blocked}", f"Compromissos vencidos: {overdue}", f"Aprovações pendentes: {approvals}"]
+    lines = ["*Gestão de Integrações — resumo executivo*", "", f"Registros ativos: {len(records)}", ""]
+    lines.extend(_active_structure_lines(records))
+    lines.extend([
+        "",
+        "*Risco operacional*",
+        f"Itens críticos: {len(unique_critical)}",
+        f"Bloqueios relevantes: {blocked}",
+        f"Compromissos vencidos: {overdue}",
+        f"Aprovações pendentes: {approvals}",
+        "",
+        "*Qualidade do fluxo*",
+        f"Itens sem responsável: {_finding_count(relevant_findings, {'owner_missing'})}",
+        f"Itens sem prazo: {_finding_count(relevant_findings, {'due_date_missing'})}",
+        f"Atualizações pendentes: {_finding_count(relevant_findings, {'stale', 'progress_update_missing'})}",
+        f"Templates incompletos: {_finding_count(relevant_findings, {'template_incomplete'})}",
+    ])
     if not unique_critical:
         lines.extend(["", "✅ situação sob controle", "", "Nenhuma intervenção gerencial foi identificada no ciclo."])
         return "\n".join(lines)
