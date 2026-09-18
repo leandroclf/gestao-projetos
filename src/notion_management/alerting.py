@@ -34,13 +34,15 @@ DAILY_ALERT_RULES = {"overdue", "stale", "approval_update_missing", "blocked_fol
 RULE_PRIORITY = {
     "blocked_follow_up": 0,
     "overdue": 1,
-    "approval_update_missing": 2,
+    # Falta de aprovador é a causa raiz; cobrar um "aprovador não identificado"
+    # antes de resolver isso apenas confundiria o dono da tarefa.
     "approver_missing": 2,
-    "stale": 3,
-    "progress_update_missing": 4,
+    "approval_update_missing": 3,
+    "stale": 4,
+    "progress_update_missing": 5,
     "progress_update_escalated": 0,
-    "due_date_missing": 5,
-    "owner_missing": 6,
+    "due_date_missing": 6,
+    "owner_missing": 7,
 }
 
 INTRO_MESSAGE = """*Evolução do acompanhamento — Equipe de Integrações*

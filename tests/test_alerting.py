@@ -168,6 +168,18 @@ class AlertingTest(unittest.TestCase):
 
         self.assertEqual("reaberto", state["lifecycle"]["tasks:1:overdue"]["status"])
 
+    def test_digest_prioritizes_missing_approver_over_unidentified_approver(self) -> None:
+        record = Record("tasks", "1", "Aprovação", "Para ser aprovada", "Rafael", page_url="https://www.notion.so/1")
+        report = AuditReport(records=[record], findings=[
+            Finding("tasks", "1", "Aprovação", "approver_missing", "Tarefa aguardando aprovação sem pelo menos um aprovador."),
+            Finding("tasks", "1", "Aprovação", "approval_update_missing", "Aprovador deverá incluir evidências...", recipient="Aprovador não identificado"),
+        ])
+
+        digest = build_operational_digest(report, rules={"approver_missing", "approval_update_missing"})
+
+        self.assertIn("Aguardando aprovador", digest.message)
+        self.assertNotIn("Aprovador não identificado", digest.message)
+
     def test_operational_digest_shows_one_entry_when_item_has_multiple_findings(self) -> None:
         record = Record("tasks", "1", "Entrega", "Em Progresso", "Rafael", page_url="https://www.notion.so/1")
         report = AuditReport(records=[record], findings=[
