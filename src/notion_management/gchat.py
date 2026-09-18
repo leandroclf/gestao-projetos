@@ -4,7 +4,7 @@ import re
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 
-from .brand import COLORS, PROJECT_NAME, semantic_color
+from .brand import PROJECT_NAME
 
 
 def _inline_html(text: str) -> str:
@@ -15,11 +15,16 @@ def _inline_html(text: str) -> str:
 
 
 def _card_html(text: str, category: str = "general") -> str:
-    lines = text.splitlines()
-    value = "<br>".join(_inline_html(line) for line in lines)
-    is_heading = bool(lines and re.fullmatch(r"\*[^*\n]+\*", lines[0].strip()))
-    color = semantic_color(category) if is_heading else COLORS["graphite"]
-    return f'<font color="{color}">{value}</font>'
+    """Renderiza texto usando as cores nativas e adaptativas do Google Chat.
+
+    Cards enviados por webhook são exibidos tanto em temas claros quanto
+    escuros, mas não recebem o tema do usuário como dado de entrada. Portanto,
+    uma cor HTML fixa pode ficar ilegível em um dos temas. A categoria é
+    mantida na assinatura para compatibilidade com os chamadores; a semântica
+    continua explícita no texto e a hierarquia visual usa negrito e o cabeçalho.
+    """
+    del category
+    return "<br>".join(_inline_html(line) for line in text.splitlines())
 
 
 def build_visual_payload(

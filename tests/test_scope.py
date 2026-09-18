@@ -128,19 +128,20 @@ class ScopeTest(unittest.TestCase):
         self.assertEqual("Gestão de Projetos", card["header"]["title"])
         self.assertEqual("https://example.com/logo.png", card["header"]["imageUrl"])
         self.assertIn("Abrir no Notion", str(payload))
-        self.assertIn('#B3261E', str(payload))
         self.assertNotIn("text", payload)
-        self.assertIn('#1A1A1C', str(payload))
+        self.assertNotIn('<font color=', str(payload))
+        self.assertIn('<b>Prazo vencido</b>', str(payload))
 
-    def test_visual_payload_uses_explicit_semantic_category(self) -> None:
+    def test_visual_payload_keeps_category_text_theme_adaptive(self) -> None:
         payload = build_visual_payload("*Aguardando aprovação*", category="approval")
 
-        self.assertIn('#7A4B00', str(payload))
+        self.assertIn('<b>Aguardando aprovação</b>', str(payload))
+        self.assertNotIn('<font color=', str(payload))
 
     def test_visual_payload_unknown_category_is_neutral(self) -> None:
         payload = build_visual_payload("Informação", category="unknown")
 
-        self.assertIn('#1A1A1C', str(payload))
+        self.assertNotIn('<font color=', str(payload))
 
 
 if __name__ == "__main__":

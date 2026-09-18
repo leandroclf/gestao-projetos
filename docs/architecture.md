@@ -53,10 +53,13 @@ IDs de bases, token e webhooks vêm de variáveis de ambiente. O `.env.example` 
 
 Os tokens institucionais e as cores semânticas ficam centralizados em
 `brand.py`; a lógica não deve espalhar hexadecimais. Cards recebem uma categoria
-visual explícita, separando identidade da classificação operacional. O texto de
-fallback permanece completo porque o webhook não garante a mesma apresentação
-em todos os clientes do Google Chat. As regras de voz, paleta, tipografia e
-estrutura de mensagem estão em `docs/brand-communication.md`.
+visual explícita, separando identidade da classificação operacional. O texto dos
+widgets não usa cores HTML fixas: como o webhook não informa o tema do usuário,
+o Google Chat precisa fornecer uma cor adaptativa para manter a leitura nos
+temas claro e escuro. O texto de fallback permanece completo porque o webhook
+não garante a mesma apresentação em todos os clientes do Google Chat. As regras
+de voz, paleta, tipografia e estrutura de mensagem estão em
+`docs/brand-communication.md`.
 
 ### Relatório gerencial
 

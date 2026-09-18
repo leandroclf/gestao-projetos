@@ -75,9 +75,13 @@ Regras transversais:
 ## Categorias de cards
 
 O código utiliza categorias explícitas (`overdue`, `blocked`, `approval`,
-`stale`, `management_report` e `general`) para aplicar cor semântica. A
+`stale`, `management_report` e `general`) para classificar a mensagem. A
 categoria não deve ser inferida pela cor do texto nem exigir conhecimento de
-hexadecimais na lógica de negócio.
+hexadecimais na lógica de negócio. Como o webhook não informa se o usuário está
+usando o tema claro ou escuro, o texto dos cards usa a cor nativa adaptativa do
+Google Chat; cores HTML fixas não devem ser aplicadas ao corpo ou aos títulos,
+pois podem ficar ilegíveis em um dos temas. A categoria permanece disponível
+para evolução visual em componentes que suportem tokens de tema.
 
 ## Checklist de revisão
 
